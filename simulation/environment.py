@@ -64,7 +64,7 @@ def cal_parameter_group(parameter_count):
         nums.insert(0, 0)
     elif len(nums) == 2:
         nums.insert(0, 0)
-    return (int(n)/10 for n in nums)
+    return (int(n) / 10 for n in nums)
 
 
 class Environment:
@@ -126,9 +126,9 @@ class Environment:
 
                     iteration = 0
                     iteration_name = "{}_{}_{}_{}_{}".format(spring_elastic_stiffness,
-                                                        spring_damping_stiffness,
-                                                        spring_bending_stiffness,
-                                                        num_joint, joints[0])
+                                                             spring_damping_stiffness,
+                                                             spring_bending_stiffness,
+                                                             num_joint, joints[0])
                     print("Saving file: ", iteration_name)
                     start = time.time()
                     for step in range(301):
@@ -146,13 +146,13 @@ class Environment:
                                 file_name = iteration_name + '_' + str(iteration) + '_' + str(eye_position)
                                 thread = Thread(target=save, args=(file_name, camera_image))
                                 thread.start()
-                                time.sleep(0.005)  # force the program sleep to avoid too many threads run at the same time
+                                time.sleep(
+                                    0.005)  # force the program sleep to avoid too many threads run at the same time
 
                             iteration += 1
                             print("finish saving in ", time.time() - start)
 
                         p.stepSimulation()
-
 
                     p.resetSimulation()  # reset the environment
 

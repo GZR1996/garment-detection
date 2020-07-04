@@ -4,13 +4,25 @@
 
 ## 中文
 
-### 如何运行simulation
+### 仿真过程
+
+#### 如何运行simulation
 + ```python simulation/init_world.py``` 
 
-### 如何查看结果
+#### 如何查看结果
 npy文件请用numpy读取，matplotlib输出，或者运行```python simulation/test.py```
 
-### 运行结果
+###### 文件名含义
+文件名例子: (1)_(2)_(3)_(4)_(5)_(6)_(7)
++ (1): springElasticStiffness: 弹性系数
++ (2): springDampingStiffness：阻尼系数
++ (3): springBendingStiffness: 弯曲系数
++ (4): pointsToHold: 抓取点的个数
++ (5): holdAnchorIndex: 抓取布的index节点
++ (6): iteration: simulation过程次数
++ (7): eyePosition: 摄像机位置
+
+###### 运行结果
 + 结果目录 ```./simulation/data```
 + RGB数据 ```./simulation/data/rgb```  
     - PNG格式图片
@@ -21,4 +33,3 @@ npy文件请用numpy读取，matplotlib输出，或者运行```python simulation
 + 边缘数据 ```./simulation/data/segmentation```
     - npy文件(二进制文件，内部是二维数组)，包含环境内所有物体
 
-### 
