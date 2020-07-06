@@ -21,6 +21,7 @@ RBG_PATH = os.path.join(DIRECTORY, DATA_FOLDER_NAME, 'rgb')
 DEPTH_PATH = os.path.join(DIRECTORY, DATA_FOLDER_NAME, 'depth')
 SEGMENTATION_PATH = os.path.join(DIRECTORY, DATA_FOLDER_NAME, 'segmentation')
 FINAL_DEPTH_PATH = os.path.join(DIRECTORY, DATA_FOLDER_NAME, 'final_depth')
+BIN_PATH = os.path.join(DIRECTORY, DATA_FOLDER_NAME, 'bin')
 if not os.path.exists(os.path.join(DIRECTORY, DATA_FOLDER_NAME)):
     os.mkdir(os.path.join(DIRECTORY, DATA_FOLDER_NAME))
 if not os.path.exists(RBG_PATH):
@@ -44,20 +45,13 @@ def save(file_name, camera_image):
     path = os.path.join(RBG_PATH, file_name + '.png')
     imageio.imwrite(path, rgb_data)
 
-    depth_data = np.array(camera_image[3])
-    path = os.path.join(DEPTH_PATH, file_name + '.npy')
-    np.save(path, depth_data)
-    # write_records()
-
+    raw_depth_data = np.array(camera_image[3])
     segmentation_data = np.array(camera_image[4])
-    path = os.path.join(SEGMENTATION_PATH, file_name + '.npy')
-    np.save(path, segmentation_data)
-
-    final_depth_data = depth_data.copy()
+    raw_depth_data = raw_depth_data.copy()
     # only keep depth data of cloth
-    path = os.path.join(FINAL_DEPTH_PATH, file_name + '.npy')
-    final_depth_data[(depth_data != 1.0) & (segmentation_data == 0.0)] = 1
-    np.save(path, final_depth_data)
+    raw_depth_data[(raw_depth_data != 1.0) & (segmentation_data == 0.0)] = 1
+    path = os.path.join(BIN_PATH, file_name)
+    np.savez_compressed(path, raw_depth=raw_depth_data, segmentation=segmentation_data, depth=raw_depth_data)
 
 
 def cal_parameter_group(parameter_count):
