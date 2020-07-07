@@ -23,8 +23,8 @@ with different camera position. The result is saved as png file and npz file.
 + Bending Stiffness range: [2.0, 20.0], 2.0 in each step, 10 parameters in total
 
 ###### Dataset
-+ The number of data: 120,000 image in total
-+ 
++ The number of data: 150,000 image in total (1000 physics parameter groups, 30 times of records for one group, 5 camera 
+position for each time of record)
 + Dataset directory: ```path to project/simulation/data```  
     - Label: In the filename, ```(1)_(2)_(3)_(4)_(5)_(6).png or (1)_(2)_(3)_(4)_(5)_(6).npz```
         + (1) value of springElasticStiffness
@@ -34,10 +34,9 @@ with different camera position. The result is saved as png file and npz file.
         + (5) Camera position, 5 kind of position in total, (labeled as 0, 1, 2, 3, 4)
     - RGB directory: ```path to project/simulation/data/rgb```  
         + PNG file
-        + Example: []
     - Data directory: ```path to project/simulation/data/bin```
-        + NPZ file, an compressive file including raw depth data, segmentation data and depth data  
-        + Example: []
+        + NPZ file, an compressive file for binary numpy array including raw depth data (include depth of table and cloth), 
+        segmentation data (include segmentation of table and cloth) and depth data (only include cloth) 
         + How to open: 
         ```python
       import numpy as np
@@ -53,40 +52,6 @@ with different camera position. The result is saved as png file and npz file.
         ```
  
 #### How to use the code of simulation
-
-
-
-### Neural network
-
-
-## 中文
-
-### 仿真过程
-
-#### 如何运行simulation
-+ ```python simulation/init_world.py``` 
-
-#### 如何查看结果
-npy文件请用numpy读取，matplotlib输出，或者运行```python simulation/test.py```
-
-###### 文件名含义
-文件名例子: (1)_(2)_(3)_(4)_(5)_(6)_(7)
-+ (1): springElasticStiffness: 弹性系数
-+ (2): springDampingStiffness：阻尼系数
-+ (3): springBendingStiffness: 弯曲系数
-+ (4): pointsToHold: 抓取点的个数
-+ (5): holdAnchorIndex: 抓取布的index节点
-+ (6): iteration: simulation过程次数
-+ (7): eyePosition: 摄像机位置
-
-###### 运行结果
-+ 结果目录 ```./simulation/data```
-+ RGB数据 ```./simulation/data/rgb```  
-    - PNG格式图片
-+ 深度数据 ```./simulation/data/depth```  
-    - npy文件(二进制文件，内部是二维数组)，包含环境内所有物体
-+ 最终深度数据 ```./simulation/data/final_depth```
-    - npy文件(二进制文件，内部是二维数组)，只含cloth
-+ 边缘数据 ```./simulation/data/segmentation```
-    - npy文件(二进制文件，内部是二维数组)，包含环境内所有物体
+1. Install all necessary packages by using ```pip install -r requirements.txt``` 
+2. Run the script directly ```python ./simulation/init_world.py```
 
