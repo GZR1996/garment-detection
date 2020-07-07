@@ -4,34 +4,26 @@ import numpy as np
 import pybullet as p
 import pybullet_data
 import imageio
-from struct import Struct
 from threading import Thread
 
 ASSERT_NAME = 'asserts'
-DATA_FOLDER_NAME = 'data'
+DATA_FOLDER_NAME = 'data_20'
 
 DIRECTORY = os.path.dirname(os.path.realpath(__file__))
 TABLE_PATH = os.path.join(DIRECTORY, ASSERT_NAME, 'table', 'table.urdf')
-CLOTH_PATH = os.path.join(DIRECTORY, ASSERT_NAME, 'clothing', 'hospitalgown_reduced.obj')
+CLOTH_PATH = "cloth_up_z.obj"
 
 output_attributes = ['width', 'height', 'rgbPixels', 'depthPixels', 'segmentationMaskBuffer']
 
 # parameters of data collection
 RBG_PATH = os.path.join(DIRECTORY, DATA_FOLDER_NAME, 'rgb')
-DEPTH_PATH = os.path.join(DIRECTORY, DATA_FOLDER_NAME, 'depth')
-SEGMENTATION_PATH = os.path.join(DIRECTORY, DATA_FOLDER_NAME, 'segmentation')
-FINAL_DEPTH_PATH = os.path.join(DIRECTORY, DATA_FOLDER_NAME, 'final_depth')
 BIN_PATH = os.path.join(DIRECTORY, DATA_FOLDER_NAME, 'bin')
 if not os.path.exists(os.path.join(DIRECTORY, DATA_FOLDER_NAME)):
     os.mkdir(os.path.join(DIRECTORY, DATA_FOLDER_NAME))
 if not os.path.exists(RBG_PATH):
     os.mkdir(RBG_PATH)
-if not os.path.exists(DEPTH_PATH):
-    os.mkdir(DEPTH_PATH)
-if not os.path.exists(SEGMENTATION_PATH):
-    os.mkdir(SEGMENTATION_PATH)
-if not os.path.exists(FINAL_DEPTH_PATH):
-    os.mkdir(FINAL_DEPTH_PATH)
+if not os.path.exists(BIN_PATH):
+    os.mkdir(BIN_PATH)
 
 
 def save(file_name, camera_image):
@@ -52,6 +44,7 @@ def save(file_name, camera_image):
     raw_depth_data[(raw_depth_data != 1.0) & (segmentation_data == 0.0)] = 1
     path = os.path.join(BIN_PATH, file_name)
     np.savez_compressed(path, raw_depth=raw_depth_data, segmentation=segmentation_data, depth=raw_depth_data)
+    np.save(path, raw_depth_data)
 
 
 def cal_parameter_group(parameter_count):
@@ -88,9 +81,9 @@ class Environment:
 
         # parameters of camera
         self.available_eye_positions = [[2, 0.0, 1.0], [0.0, 2, 1.0],
-                                  [-2, 0.0, 1.0], [0.0, -2.5, 1.0], [0.0, -1.0, 3.0]]
+                                        [-2, 0.0, 1.0], [0.0, -2.5, 1.0], [0.0, -1.0, 3.0]]
         self.available_target_positions = [[0., -0.55, 1.0], [0., -1.0, 1.0],
-                                     [0., -0.85, 1.0], [0., -0.85, 1.0], [0., -0.85, 1.0]]
+                                           [0., -0.85, 1.0], [0., -0.85, 1.0], [0., -0.85, 1.0]]
         self.target_position = np.array(self.cloth_position - [0.0, -0.2, 0.5])
         self.up_vector = np.array([0.0, 0.0, 1.0])
         self.projection_matrix = p.computeProjectionMatrixFOV(fov=45.0, aspect=1.0, nearVal=0.1, farVal=3.1)
@@ -113,9 +106,10 @@ class Environment:
         file_name: %d(springElasticStiffness)_%d(springDampingStiffness)_%d(springBendingStiffness)_%d(pointsToHold)_%d(holdAnchorIndex)_%(iteration)_%d(eyePosition)
         :return:
         """
-        for parameter_count in range(0, 1000, 111):
-            spring_elastic_stiffness, spring_damping_stiffness, spring_bending_stiffness = cal_parameter_group(parameter_count)
-            table_id, cloth_id = self.load_world(spring_elastic_stiffness, spring_damping_stiffness, spring_bending_stiffness)
+        for parameter_count in range(0, 1000, 9999):
+            spring_elastic_stiffness, spring_damping_stiffness, spring_bending_stiffness = 0.1, 0.1, 0.1
+            table_id, cloth_id = self.load_world(spring_elastic_stiffness, spring_damping_stiffness,
+                                                 spring_bending_stiffness)
 
             iteration = 0
             iteration_name = "{}_{}_{}".format(spring_elastic_stiffness,
@@ -125,10 +119,11 @@ class Environment:
             start = time.time()
             for step in range(301):
                 # suspend and release the cloth
-                if step < 50:
+                if step < 25:
                     p.applyExternalForce(cloth_id, 0, [0, 0, 10], [0, 0, 0], p.WORLD_FRAME)
                 # after releasing the cloth, record the data every 25 frame of simulation
-                if step % 25 == 0:
+                if step % 30 == 0:
+                    pass
                     for eye_position, view_matrix in enumerate(self.view_matrics):
                         camera_image = p.getCameraImage(width=self.width, height=self.height,
                                                         viewMatrix=view_matrix,
@@ -161,14 +156,22 @@ class Environment:
                               baseOrientation=p.getQuaternionFromEuler([0, 0, np.pi / 2.0]),
                               flags=p.URDF_USE_SELF_COLLISION_INCLUDE_PARENT)
 
+        print("spring_elastic_stiffness", spring_elastic_stiffness)
+        print("spring_damping_stiffness", spring_damping_stiffness)
+        print("spring_bending_stiffness", spring_bending_stiffness)
+
         # init cloth
-        cloth_id = p.loadSoftBody(CLOTH_PATH, basePosition=self.cloth_position, scale=1, mass=1., useNeoHookean=0,
+        cloth_id = p.loadSoftBody("cloth_z_up.obj", basePosition=self.cloth_position, scale=0.1, mass=1.0, useNeoHookean=0,
                                   useBendingSprings=1, useMassSpring=1,
                                   springElasticStiffness=spring_elastic_stiffness,
                                   springDampingStiffness=spring_damping_stiffness,
-                                  springBendingStiffness=spring_bending_stiffness,
-                                  springDampingAllDirections=1,
-                                  useSelfCollision=1, frictionCoeff=.5, useFaceContact=1)
+                                  springDampingAllDirections=1, useSelfCollision=1, frictionCoeff=.5, useFaceContact=1)
+        # p.loadSoftBody(CLOTH_PATH, basePosition=self.cloth_position, scale=1, mass=1., useNeoHookean=0,
+        #                       useBendingSprings=0, useMassSpring=1,
+        #                       springElasticStiffness=spring_elastic_stiffness,
+        #                       springDampingStiffness=spring_damping_stiffness,
+        #                       springBendingStiffness=spring_bending_stiffness,
+        #                       useSelfCollision=1, frictionCoeff=.5, useFaceContact=1)
 
         return table_id, cloth_id
 
@@ -178,7 +181,8 @@ class Environment:
         :return:
         """
         spring_elastic_stiffness, spring_damping_stiffness, spring_bending_stiffness = cal_parameter_group(555)
-        table_id, cloth_id = self.load_world(spring_elastic_stiffness, spring_damping_stiffness, spring_bending_stiffness)
+        table_id, cloth_id = self.load_world(spring_elastic_stiffness, spring_damping_stiffness,
+                                             spring_bending_stiffness)
 
         i = 4
         available_eye_position = [[2, 0.0, 1.0], [0.0, 2, 1.0],

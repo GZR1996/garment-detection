@@ -19,28 +19,23 @@ p.setGravity(0, 0, gravZ)
 planeOrn = [0, 0, 0, 1]  # p.getQuaternionFromEuler([0.3,0,0])
 planeId = p.loadURDF("plane.urdf", [0, 0, -2], planeOrn)
 
-boxId = p.loadURDF("cube.urdf", [0, 1, 2], useMaximalCoordinates=True, globalScaling=0.1)
-# textureId = p.loadTexture("duckCM.png")
-# p.changeVisualShape(boxId, -1, textureUniqueId=textureId)
+boxId = p.loadURDF("cube.urdf", [0, 1, 2], useMaximalCoordinates=True)
 
-clothId = p.loadSoftBody(cloth_path, basePosition=[0, 0, 2], scale=0.5, mass=1., useNeoHookean=0,
+clothId = p.loadSoftBody("cloth_z_up.obj", basePosition=[0, 0, 2], scale=0.5, mass=1., useNeoHookean=0,
                          useBendingSprings=1, useMassSpring=1, springElasticStiffness=40, springDampingStiffness=.1,
                          springDampingAllDirections=1, useSelfCollision=0, frictionCoeff=.5, useFaceContact=1)
 
 p.createSoftBodyAnchor(clothId, 0, -1, -1)
 p.createSoftBodyAnchor(clothId, 1, -1, -1)
-p.createSoftBodyAnchor(clothId, 3, boxId, -1, [0.5, -0, 0])
+p.createSoftBodyAnchor(clothId, 3, boxId, -1, [0.5, -0.5, 0])
 p.createSoftBodyAnchor(clothId, 2, boxId, -1, [-0.5, -0.5, 0])
 p.setPhysicsEngineParameter(sparseSdfVoxelSize=0.25)
 p.setRealTimeSimulation(1)
 
-for i in range(8):
-    print("1111", p.getLinkState(boxId, i))
-
 t = True
 i = 0
 while p.isConnected():
-    i+= 1
+    i += 1
     p.setGravity(0, 0, gravZ)
     viewMatrix = p.computeViewMatrix(
         cameraEyePosition=[0, 2, 0],
@@ -57,4 +52,4 @@ while p.isConnected():
         viewMatrix=viewMatrix,
         projectionMatrix=projectionMatrix,
         renderer=p.ER_BULLET_HARDWARE_OPENGL)
-    # sleep(1. / 240.)
+    sleep(1. / 240.)
