@@ -1,6 +1,7 @@
 # garment-detection
-## English
+
 ### Simulation
+
 #### Data collection plan
 The data collection plan is to collect rgb data, raw depth data, segmentation data and depth data in the simulation with
 different physics parameters combination. The simulation is setting different physics of cloth(soft body), suspending it 
