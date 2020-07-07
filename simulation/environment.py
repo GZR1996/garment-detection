@@ -7,11 +7,11 @@ import imageio
 from threading import Thread
 
 ASSERT_NAME = 'asserts'
-DATA_FOLDER_NAME = 'data_20'
+DATA_FOLDER_NAME = 'data'
 
 DIRECTORY = os.path.dirname(os.path.realpath(__file__))
 TABLE_PATH = os.path.join(DIRECTORY, ASSERT_NAME, 'table', 'table.urdf')
-CLOTH_PATH = "cloth_up_z.obj"
+CLOTH_PATH = os.path.join(DIRECTORY, ASSERT_NAME, 'clothing', 'cloth_z_up.obj')
 
 output_attributes = ['width', 'height', 'rgbPixels', 'depthPixels', 'segmentationMaskBuffer']
 
@@ -39,12 +39,13 @@ def save(file_name, camera_image):
 
     raw_depth_data = np.array(camera_image[3])
     segmentation_data = np.array(camera_image[4])
-    raw_depth_data = raw_depth_data.copy()
+    depth_data = raw_depth_data.copy()
     # only keep depth data of cloth
-    raw_depth_data[(raw_depth_data != 1.0) & (segmentation_data == 0.0)] = 1
+    depth_data[(raw_depth_data != 1.0) & (segmentation_data == 0.0)] = 1
+
+    # save data and compress as a npz file
     path = os.path.join(BIN_PATH, file_name)
-    np.savez_compressed(path, raw_depth=raw_depth_data, segmentation=segmentation_data, depth=raw_depth_data)
-    np.save(path, raw_depth_data)
+    np.savez_compressed(path, raw_depth=raw_depth_data, segmentation=segmentation_data, depth=depth_data)
 
 
 def cal_parameter_group(parameter_count):
@@ -54,26 +55,20 @@ def cal_parameter_group(parameter_count):
         nums.insert(0, 0)
     elif len(nums) == 2:
         nums.insert(0, 0)
-    return (int(n) / 10 for n in nums)
+    return [int(n) for n in nums]
 
 
 class Environment:
 
-    def __init__(self, table_position, table_orientation,
-                 cloth_position, cloth_orientation, cloth_color, cloth_line_color,
-                 num_joints=[1, 2, 3]):
+    def __init__(self, table_position, cloth_position):
         # parameters of table
         self.table_position = table_position
-        self.table_orientation = table_orientation
 
         # parameters of cloth
         self.cloth_position = cloth_position
-        self.cloth_color = cloth_color
-        self.cloth_line_color = cloth_line_color
-        self.cloth_indices_boundary = 200
-
-        # physics settings
-        self.num_joints = num_joints
+        self.elastic_stiffness_range = np.arange(40.0, 140.0, 10.0)
+        self.damping_stiffness_range = np.arange(0.1, 1.1, 0.1)
+        self.bending_stiffness_range = np.arange(2.0, 22.0, 2.0)
 
         # parameters of pybullet
         self.physicsClient = p.connect(p.GUI)
@@ -97,19 +92,19 @@ class Environment:
         self.height = 256
         self.width = 256
 
-    def set_num_joints(self, num_joints):
-        self.num_joints = num_joints
-
     def simulate(self):
         """
         simulate the environment using pybullet and save file
-        file_name: %d(springElasticStiffness)_%d(springDampingStiffness)_%d(springBendingStiffness)_%d(pointsToHold)_%d(holdAnchorIndex)_%(iteration)_%d(eyePosition)
         :return:
         """
-        for parameter_count in range(0, 1000, 9999):
-            spring_elastic_stiffness, spring_damping_stiffness, spring_bending_stiffness = 0.1, 0.1, 0.1
-            table_id, cloth_id = self.load_world(spring_elastic_stiffness, spring_damping_stiffness,
-                                                 spring_bending_stiffness)
+        for parameter_count in range(0, 1000, 1):
+            indexes = cal_parameter_group(parameter_count)
+            spring_elastic_stiffness = self.elastic_stiffness_range[indexes[0]]
+            spring_damping_stiffness = self.damping_stiffness_range[indexes[1]]
+            spring_bending_stiffness = self.bending_stiffness_range[indexes[2]]
+            table_id, cloth_id, anchor_ids = self.load_world(spring_elastic_stiffness,
+                                                             spring_damping_stiffness,
+                                                             spring_bending_stiffness)
 
             iteration = 0
             iteration_name = "{}_{}_{}".format(spring_elastic_stiffness,
@@ -117,12 +112,18 @@ class Environment:
                                                spring_bending_stiffness)
             print("Saving file: ", iteration_name)
             start = time.time()
-            for step in range(301):
+            for step in range(1500):
                 # suspend and release the cloth
-                if step < 25:
-                    p.applyExternalForce(cloth_id, 0, [0, 0, 10], [0, 0, 0], p.WORLD_FRAME)
+                if step == 0:
+                    p.resetBaseVelocity(cloth_id, linearVelocity=[0, 0, 0.5])
+                    # p.applyExternalForce(cloth_id, 0, [0, 0, 1000], [0, 0, 0], p.WORLD_FRAME)
+                elif step == 500:
+                    p.resetBaseVelocity(cloth_id, linearVelocity=[0, 0, 0])
+                    for anchor_id in anchor_ids:
+                        p.removeConstraint(anchor_id)
+
                 # after releasing the cloth, record the data every 25 frame of simulation
-                if step % 30 == 0:
+                if step % 50 == 0:
                     pass
                     for eye_position, view_matrix in enumerate(self.view_matrics):
                         camera_image = p.getCameraImage(width=self.width, height=self.height,
@@ -132,14 +133,12 @@ class Environment:
                         file_name = iteration_name + '_' + str(iteration) + '_' + str(eye_position)
                         thread = Thread(target=save, args=(file_name, camera_image))
                         thread.start()
-                        time.sleep(0.2)  # force the program sleep to avoid too many threads run at the same time
+                        time.sleep(0.05)  # force the program sleep to avoid too many threads run at the same time
 
                     iteration += 1
                     print("finish saving in ", time.time() - start)
 
                 p.stepSimulation()
-
-            p.resetSimulation()  # reset the environment
 
     def load_world(self, spring_elastic_stiffness, spring_damping_stiffness, spring_bending_stiffness):
         """
@@ -150,30 +149,28 @@ class Environment:
         :return:
         """
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
-        p.setGravity(0, 0, -5)
+        # reset the environment to enable simulate deformable object
+        p.resetSimulation(p.RESET_USE_DEFORMABLE_WORLD)
+        p.configureDebugVisualizer(p.COV_ENABLE_SEGMENTATION_MARK_PREVIEW)
+        p.setGravity(0, 0, -10)
 
-        table_id = p.loadURDF(TABLE_PATH, basePosition=[0, -0.75, 0],
+        table_id = p.loadURDF(TABLE_PATH, basePosition=self.table_position,
                               baseOrientation=p.getQuaternionFromEuler([0, 0, np.pi / 2.0]),
                               flags=p.URDF_USE_SELF_COLLISION_INCLUDE_PARENT)
 
-        print("spring_elastic_stiffness", spring_elastic_stiffness)
-        print("spring_damping_stiffness", spring_damping_stiffness)
-        print("spring_bending_stiffness", spring_bending_stiffness)
-
         # init cloth
-        cloth_id = p.loadSoftBody("cloth_z_up.obj", basePosition=self.cloth_position, scale=0.1, mass=1.0, useNeoHookean=0,
-                                  useBendingSprings=1, useMassSpring=1,
+        cloth_id = p.loadSoftBody(CLOTH_PATH, basePosition=self.cloth_position,
+                                  scale=0.2, mass=1.,
+                                  useNeoHookean=0, useBendingSprings=1, useMassSpring=1, useSelfCollision=1,
                                   springElasticStiffness=spring_elastic_stiffness,
                                   springDampingStiffness=spring_damping_stiffness,
-                                  springDampingAllDirections=1, useSelfCollision=1, frictionCoeff=.5, useFaceContact=1)
-        # p.loadSoftBody(CLOTH_PATH, basePosition=self.cloth_position, scale=1, mass=1., useNeoHookean=0,
-        #                       useBendingSprings=0, useMassSpring=1,
-        #                       springElasticStiffness=spring_elastic_stiffness,
-        #                       springDampingStiffness=spring_damping_stiffness,
-        #                       springBendingStiffness=spring_bending_stiffness,
-        #                       useSelfCollision=1, frictionCoeff=.5, useFaceContact=1)
+                                  springBendingStiffness=spring_bending_stiffness,
+                                  springDampingAllDirections=1,  frictionCoeff=.5, useFaceContact=1)
 
-        return table_id, cloth_id
+        anchor_1 = p.createSoftBodyAnchor(cloth_id, 0, -1, -1)
+        anchor_2 = p.createSoftBodyAnchor(cloth_id, 1, -1, -1)
+
+        return table_id, cloth_id, (anchor_1, anchor_2)
 
     def test(self):
         """
@@ -181,8 +178,8 @@ class Environment:
         :return:
         """
         spring_elastic_stiffness, spring_damping_stiffness, spring_bending_stiffness = cal_parameter_group(555)
-        table_id, cloth_id = self.load_world(spring_elastic_stiffness, spring_damping_stiffness,
-                                             spring_bending_stiffness)
+        table_id, cloth_id, anchor_ids = self.load_world(spring_elastic_stiffness, spring_damping_stiffness,
+                                                         spring_bending_stiffness)
 
         i = 4
         available_eye_position = [[2, 0.0, 1.0], [0.0, 2, 1.0],

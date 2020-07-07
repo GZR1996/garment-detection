@@ -1,6 +1,20 @@
 # garment-detection
 ## English
-### How to run
+### Simulation
+#### Data collection plan
+
+##### Environment setting
+
+##### Physics parameters range
++ Elastic Stiffness range: [40.0, 130.0], 10.0 in each step
++ Damping Stiffness range: [0.1, 1.0], 0.1 in each step
++ Bending Stiffness range: [2.0, 20.0], 2.0 in each step
+
+###### l
+
+
+### Neural network
+
 
 ## 中文
 

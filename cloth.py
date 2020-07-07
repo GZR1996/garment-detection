@@ -22,19 +22,20 @@ planeId = p.loadURDF("plane.urdf", [0, 0, -2], planeOrn)
 boxId = p.loadURDF("cube.urdf", [0, 1, 2], useMaximalCoordinates=True)
 
 clothId = p.loadSoftBody("cloth_z_up.obj", basePosition=[0, 0, 2], scale=0.5, mass=1., useNeoHookean=0,
-                         useBendingSprings=1, useMassSpring=1, springElasticStiffness=40, springDampingStiffness=.1,
+                         useBendingSprings=1, useMassSpring=1, springElasticStiffness=40, springDampingStiffness=.99,
                          springDampingAllDirections=1, useSelfCollision=0, frictionCoeff=.5, useFaceContact=1)
-
+p.resetBaseVelocity(clothId, linearVelocity=[0, 0, 1])
 p.createSoftBodyAnchor(clothId, 0, -1, -1)
-p.createSoftBodyAnchor(clothId, 1, -1, -1)
-p.createSoftBodyAnchor(clothId, 3, boxId, -1, [0.5, -0.5, 0])
-p.createSoftBodyAnchor(clothId, 2, boxId, -1, [-0.5, -0.5, 0])
+# p.createSoftBodyAnchor(clothId, 1, -1, -1)
+# p.createSoftBodyAnchor(clothId, 3, boxId, -1, [0.5, -0.5, 0])
+# p.createSoftBodyAnchor(clothId, 2, boxId, -1, [-0.5, -0.5, 0])
 p.setPhysicsEngineParameter(sparseSdfVoxelSize=0.25)
 p.setRealTimeSimulation(1)
 
 t = True
 i = 0
 while p.isConnected():
+    p.applyExternalForce(clothId, 3, [0, 0, 1000], [0, 0, 0], p.WORLD_FRAME)
     i += 1
     p.setGravity(0, 0, gravZ)
     viewMatrix = p.computeViewMatrix(
@@ -49,7 +50,5 @@ while p.isConnected():
     width, height, rgbImg, depthImg, segImg = p.getCameraImage(
         width=224,
         height=224,
-        viewMatrix=viewMatrix,
-        projectionMatrix=projectionMatrix,
         renderer=p.ER_BULLET_HARDWARE_OPENGL)
     sleep(1. / 240.)
