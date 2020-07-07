@@ -1,0 +1,4 @@
+imageio==2.8.0
+pybullet==2.8.2
+numpy==1.18.1
+matplotlib==2.2.2
