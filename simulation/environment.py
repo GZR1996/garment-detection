@@ -112,12 +112,12 @@ class Environment:
                                                            spring_bending_stiffness)
             print("Saving file: ", iteration_name)
             start = time.time()
-            for step in range(2400):
+            for step in range(1500):
                 # suspend and release the cloth
                 if step == 0:
-                    p.resetBaseVelocity(cloth_id, linearVelocity=[0, 0, 0.2])
+                    p.resetBaseVelocity(cloth_id, linearVelocity=[0, 0, 0.5])
                     # p.applyExternalForce(cloth_id, 0, [0, 0, 1000], [0, 0, 0], p.WORLD_FRAME)
-                elif step == 1200:
+                elif step == 500:
                     p.resetBaseVelocity(cloth_id, linearVelocity=[0, 0, 0])
                     for anchor_id in anchor_ids:
                         p.removeConstraint(anchor_id)

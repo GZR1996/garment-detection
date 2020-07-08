@@ -3,12 +3,12 @@
 ### Simulation
 
 #### Data collection plan
-The data collection plan is to collect rgb data, raw depth data, segmentation data and depth data in the simulation with
-different physics parameters combination. The simulation is setting different physics of cloth(soft body), suspending it 
-from the table and let it fall on the table. The parameters that is available for cloth in this experiment are elastic 
-stiffness, damping stiffness and bending stiffness. I plan to collect 10 values for each parameters so I will get 1000 
-groups of physics parameter settings of cloth. In each group of setting, I collect data each 50 frame in the simulation 
-with different camera position. The result is saved as png file and npz file.
+The data collection plan is to collect RGB data, raw depth data, segmentation data, and depth data in the simulation 
+with different physics parameters combination. The simulation is setting different physics of cloth(soft body), 
+suspending it from the table and let it fall on the table. The parameters that are available for cloth in this 
+experiment are elastic stiffness, damping stiffness, and bending stiffness. I plan to collect 10 values for each 
+parameter so I will get 1000 groups of physics parameter settings of cloth. In each group of settings, I collect data 
+every 50 frames in the simulation with different camera positions. The result is saved as PNG file and NPZ file.
 
 ##### Environment setting
 + Objects setting:
