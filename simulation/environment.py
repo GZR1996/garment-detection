@@ -107,17 +107,17 @@ class Environment:
                                                              spring_bending_stiffness)
 
             iteration = 0
-            iteration_name = "{}_{}_{}".format(spring_elastic_stiffness,
-                                               spring_damping_stiffness,
-                                               spring_bending_stiffness)
+            iteration_name = "{:.1f}_{:.1f}_{:.1f}".format(spring_elastic_stiffness,
+                                                           spring_damping_stiffness,
+                                                           spring_bending_stiffness)
             print("Saving file: ", iteration_name)
             start = time.time()
-            for step in range(1500):
+            for step in range(2400):
                 # suspend and release the cloth
                 if step == 0:
-                    p.resetBaseVelocity(cloth_id, linearVelocity=[0, 0, 0.5])
+                    p.resetBaseVelocity(cloth_id, linearVelocity=[0, 0, 0.2])
                     # p.applyExternalForce(cloth_id, 0, [0, 0, 1000], [0, 0, 0], p.WORLD_FRAME)
-                elif step == 500:
+                elif step == 1200:
                     p.resetBaseVelocity(cloth_id, linearVelocity=[0, 0, 0])
                     for anchor_id in anchor_ids:
                         p.removeConstraint(anchor_id)
@@ -133,7 +133,7 @@ class Environment:
                         file_name = iteration_name + '_' + str(iteration) + '_' + str(eye_position)
                         thread = Thread(target=save, args=(file_name, camera_image))
                         thread.start()
-                        time.sleep(0.05)  # force the program sleep to avoid too many threads run at the same time
+                        time.sleep(0.2)  # force the program sleep to avoid too many threads run at the same time
 
                     iteration += 1
                     print("finish saving in ", time.time() - start)
@@ -165,7 +165,7 @@ class Environment:
                                   springElasticStiffness=spring_elastic_stiffness,
                                   springDampingStiffness=spring_damping_stiffness,
                                   springBendingStiffness=spring_bending_stiffness,
-                                  springDampingAllDirections=1,  frictionCoeff=.5, useFaceContact=1)
+                                  springDampingAllDirections=1, frictionCoeff=.5, useFaceContact=1)
 
         anchor_1 = p.createSoftBodyAnchor(cloth_id, 0, -1, -1)
         anchor_2 = p.createSoftBodyAnchor(cloth_id, 1, -1, -1)
