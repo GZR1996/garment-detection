@@ -10,6 +10,6 @@ parser.add_argument('--checkpoint_dir', type=str, default='./checkpoint')
 args = parser.parse_args()
 
 if os.path.exists(args.checkpoint_dir):
-    os.mkdir(args.batch_size)
+    os.mkdir(args.checkpoint_dir)
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
