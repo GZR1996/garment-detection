@@ -10,6 +10,7 @@ from torch.utils.data import DataLoader
 from models.vae import VAE
 from utils.garment_dataset import GarmentDataset
 from utils.utils import DATA_SIZE, LATENT_SIZE, BEST_FILENAME
+from utils.utils import save_checkpoint
 
 # parameters of training
 parser = argparse.ArgumentParser(description='Parameter of train.py')
@@ -68,9 +69,31 @@ def train(model, loader, epoch):
         if batch % 20 == 0:
             print('Train epoch: {}, batch: {}, loss: {}, time: {}'.format(epoch, batch, loss, time.time()-epoch_start))
 
+    avg_loss = train_loss / len(loader.dataset)
     print('Finish training epoch {}, average loss: {}, in {} seconds'.format(epoch,
-                                                                             train_loss/len(loader.dataset),
+                                                                             avg_loss,
                                                                              time.time()-epoch_start))
+
+    return avg_loss
+
+
+def test(model, loader, epoch):
+    model.eval()
+    test_loss = 0
+    epoch_start = time.time()
+
+    with torch.no_grad():
+        for data in loader:
+            data = data.to(device)
+            recon_batch, mu, sigma = model(data)
+            test_loss += loss_function(recon_batch, data, mu, sigma)
+
+    avg_loss = test_loss / len(loader.dataset)
+    print('Finish training epoch {}, average loss: {}, in {} seconds'.format(epoch,
+                                                                             avg_loss,
+                                                                             time.time() - epoch_start))
+
+    return avg_loss
 
 
 train_dataset = GarmentDataset(data_dir, parser.data_type, train_label_dir)
@@ -80,6 +103,26 @@ test_loader = DataLoader(test_dataset, args.batch_size, shuffle=True, num_worker
 
 vae = VAE(DATA_SIZE, LATENT_SIZE).to(device)
 optimizer = optim.Adam(vae.parameters())
+
+reload_dir = os.path.join(parser.checkpoint_dir, BEST_FILENAME)
+checkpoint_count = len(os.listdir(reload_dir))
 if parser.reload and len(os.listdir(parser.checkpoint_dir)) > 0:
-    reload_file = os.path.join(parser.checkpoint_dir, BEST_FILENAME)
-    print('Reloading ')
+    state = torch.load(reload_dir)
+    print('Reloading checkpoint......')
+    vae.load_state_dict(state['state_dict'])
+
+best_loss = None
+for epoch in range(parser.epochs):
+    train_loss = train(vae, train_loader, epoch)
+    test_loss = test(vae, test_loader, epoch)
+    is_best = not best_loss or test_loss < best_loss
+    if is_best:
+        best_loss = test_loss
+
+    state = {'epoch': checkpoint_count+epoch,
+             'state_dict': vae.state_dict(),
+             'train_loss': train_loss,
+             'test_loss': test_loss}
+    checkpoint_name = os.path.join(parser.checkpoint_dir, str(checkpoint_count)+'.txt')
+    save_checkpoint(state, is_best, checkpoint_name, reload_dir)
+
