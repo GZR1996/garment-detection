@@ -13,7 +13,7 @@ from utils.utils import DATA_SIZE, LATENT_SIZE, BEST_FILENAME
 from utils.utils import save_checkpoint
 
 # parameters of training
-parser = argparse.ArgumentParser(description='Parameter of train.py')
+parser = argparse.ArgumentParser(description='Parameter of train_vae.py')
 parser.add_argument('--batch_size', type=int, default=16, help='The number of batches')
 parser.add_argument('--epochs', type=int, default=10, help='The number of epochs for training and testing')
 parser.add_argument('--checkpoint_dir', type=str, default='./checkpoint', help='Path to checkpoint folder')
