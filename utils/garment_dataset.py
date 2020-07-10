@@ -9,9 +9,9 @@ from torch.utils.data import Dataset
 class GarmentDataset(Dataset):
     """ Garment dataset"""
 
-    def __init__(self, rgb_dir, data_dir, csv_dir, transform=None):
-        self.rgb_dir = rgb_dir
+    def __init__(self, data_dir, data_type, csv_dir, transform=None):
         self.data_dir = data_dir
+        self.data_type = data_type
         self.labels = pd.read_csv(csv_dir)
         self.transform = transform
 
@@ -23,22 +23,13 @@ class GarmentDataset(Dataset):
             idx = idx.to_list()
 
         label = self.labels.iloc[idx]
-        print(label[0], label[1], label[2], int(label[3]), int(label[4]))
-        img_name = "{}_{}_{}_{:.0f}_{:.0f}.png".format(label[0], label[1], label[2], label[3], label[4])
-        img_name = os.path.join(self.rgb_dir, img_name)
-        img = imageio.read(img_name)
 
         data_name = "{}_{}_{}_{:.0f}_{:.0f}.npz".format(label[0], label[1], label[2], label[3], label[4])
         data_name = os.path.join(self.data_dir, data_name)
         data = np.load(data_name)
-
-        sample = {'rgb': img, 'raw_depth': data['raw_depth'], 'depth': data['depth'],
-                  'segmentation': data['segmentation']}
+        sample = data[self.data_type]
 
         if self.transform:
             sample = self.transform(sample)
 
         return sample
-
-
-

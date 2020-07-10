@@ -1,5 +1,10 @@
 import torch
 
+IMAGE_SIZE = 3
+DATA_SIZE = 1
+LATENT_SIZE = 32
+BEST_FILENAME = 'best.txt'
+
 
 def save_checkpoint(state, is_best, filename, best_filename):
     """
