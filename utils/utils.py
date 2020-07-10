@@ -18,12 +18,3 @@ def save_checkpoint(state, is_best, filename, best_filename):
     torch.save(state, filename)
     if is_best:
         torch.save(state, best_filename)
-
-
-def load_checkpoint(filename):
-    """
-    Load checkpoint
-    :param filename:
-    :return: dict of model, include parameters and states
-    """
-    return torch.load(filename)
