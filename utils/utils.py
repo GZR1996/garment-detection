@@ -1,7 +1,8 @@
 import os
 
 import torch
-import imageio
+import numpy as np
+import matplotlib.pyplot as plt
 
 IMAGE_SIZE = 3
 DATA_SIZE = 1
@@ -23,7 +24,7 @@ def save_checkpoint(state, is_best, filename, best_filename):
         torch.save(state, best_filename)
 
 
-def save_image(sample_dir, data, label):
+def save_image(sample_dir, data, labels):
     """
 
     :param sample_dir:
@@ -31,7 +32,13 @@ def save_image(sample_dir, data, label):
     :param label:
     :return:
     """
-    for image in data:
+    for image, label in zip(data, labels):
         image_dir = os.path.join(sample_dir, "{:.1f}_{:.1f}_{:.1f}_{:.0f}_{:.0f}".format(label[0], label[1],
                                                                                          label[2], label[3], label[4]))
-        imageio.imwrite(image_dir, image)
+        np.savez_compressed(image_dir, image=image[0], label=label)
+
+
+a = np.load('/home/zirun/project/python/garment-detection/simulation/data/sample/40.0_0.1_2.0_1_0.npz')
+print(a['image'])
+plt.imshow(a['image'])
+plt.show()
