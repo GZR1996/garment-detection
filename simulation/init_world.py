@@ -23,11 +23,15 @@ environment.simulate()
 file_list = os.listdir(os.path.join(DIRECTORY, DATA_FOLDER_NAME, 'bin'))
 random.shuffle(file_list)
 
-boundary = int(0.8*len(file_list))
-path_list_train = [path.replace('.npz', '\n').replace('_', ',') for path in file_list[:boundary]]
-path_list_test = [path.replace('.npz', '\n').replace('_', ',') for path in file_list[boundary:]]
+boundary1 = int(0.8*len(file_list))
+boundary2 = int(0.95*len(file_list))
+path_list_train = [path.replace('.npz', '\n').replace('_', ',') for path in file_list[:boundary1]]
+path_list_validate = [path.replace('.npz', '\n').replace('_', ',') for path in file_list[boundary1:boundary2]]
+path_list_test = [path.replace('.npz', '\n').replace('_', ',') for path in file_list[boundary2:]]
 
-with open('./data/label_train.csv', 'w') as fin:
+with open('./data/train_label.csv', 'w') as fin:
     fin.writelines(path_list_train)
-with open('./data/label_test.csv', 'w') as fin:
+with open('./data/test_validate.csv', 'w') as fin:
+    fin.writelines(path_list_validate)
+with open('./data/test_label.csv', 'w') as fin:
     fin.writelines(path_list_test)
