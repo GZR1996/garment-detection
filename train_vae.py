@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 
 from models.conv_vae import ConvVAE
-from models.vae import VAE as v2
+from models.vae import VAE
 from utils.garment_dataset import GarmentDataset
 from utils import utils
 
@@ -58,7 +58,8 @@ def loss_function(recon_x, x, mu, log_sigma):
     :return: loss
     """
     # MSE for batch
-    recon_x = recon_x.view([-1, 1, 256, 256])
+    # recon_x = recon_x.view([-1, 1, 256, 256])
+    print(recon_x.shape, x.shape)
     BCE = F.mse_loss(recon_x, x, size_average=False)
     # KL divergence
     KLD = -0.5 * torch.sum(1 + 2 * log_sigma - mu.pow(2) - (2 * log_sigma).exp())
@@ -129,7 +130,7 @@ test_dataset = GarmentDataset(args.rgb_dir, args.data_dir, args.data_type, args.
 train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=8)
 test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True, num_workers=8)
 
-vae = v2().to(device)
+vae = ConvVAE(img_channels=utils.DATA_SIZE, latent_size=utils.LATENT_SIZE).to(device)
 optimizer = optim.Adam(vae.parameters())
 
 checkpoint_count = len(os.listdir(args.checkpoint_dir))
