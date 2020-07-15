@@ -10,11 +10,12 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 
 from models.conv_vae import ConvVAE
-from models.vae import VAE
 from utils.garment_dataset import GarmentDataset
 from utils import utils
 
 # Constants
+from utils.utils import EarlyStopping
+
 DIRECTORY = os.path.abspath(os.path.dirname(__file__))
 CHECKPOINT_DIR = os.path.join(DIRECTORY, 'checkpoint')
 DATA_DIR = os.path.join(DIRECTORY, 'simulation', 'data', 'bin')
@@ -37,6 +38,8 @@ parser.add_argument('--train_label_dir', type=str, default=TRAIN_LABEL_DIR, help
 parser.add_argument('--test_label_dir', type=str, default=TRAIN_LABEL_DIR, help='Path to test label')
 parser.add_argument('--reload', type=int, default=1, choices=[0, 1],
                     help='If true and previous checkpoint exists, reload the best checkpoint')
+parser.add_argument('--generate_sample', type=int, choices=[0, 1], default=0,
+                    help='If true, the model will not be trained and only generate samples')
 args = parser.parse_args()
 
 if not os.path.exists(args.checkpoint_dir):
@@ -59,7 +62,6 @@ def loss_function(recon_x, x, mu, log_sigma):
     """
     # MSE for batch
     # recon_x = recon_x.view([-1, 1, 256, 256])
-    print(recon_x.shape, x.shape)
     BCE = F.mse_loss(recon_x, x, size_average=False)
     # KL divergence
     KLD = -0.5 * torch.sum(1 + 2 * log_sigma - mu.pow(2) - (2 * log_sigma).exp())
@@ -88,7 +90,7 @@ def train(model, loader, epoch):
     avg_loss = train_loss / len(loader.dataset)
     print('Finish training epoch {}, average loss: {}, in {} seconds'.format(epoch,
                                                                              avg_loss,
-                                                                             time.time()-epoch_start))
+                                                                             time.time() - epoch_start))
 
     return avg_loss
 
@@ -104,16 +106,16 @@ def test(model, loader, epoch, is_save=False):
             recon_batch, mu, sigma = model(sample)
             test_loss += loss_function(recon_batch, sample, mu, sigma)
             if is_save:
-                if batch % 100 == 0:
-                    print('Saving {} batch images in {} seconds'.format(batch, time.time()-epoch_start))
+                if batch % 20 == 0:
+                    print('Saving {} batch images in {} seconds'.format(batch, time.time() - epoch_start))
                 images = recon_batch.view([-1, 256, 256])
                 utils.save_image(args.sample_dir, np.asarray(images.to('cpu')), np.asarray(data['label']))
 
     avg_loss = test_loss / len(loader.dataset)
     if not is_save:
-        print('Finish training epoch {}, average loss: {}, in {} seconds'.format(epoch,
-                                                                                 avg_loss,
-                                                                                 time.time() - epoch_start))
+        print('Finish testing epoch {}, average loss: {}, in {} seconds'.format(epoch,
+                                                                                avg_loss,
+                                                                                time.time() - epoch_start))
     else:
         print('Finish generate final result at', args.sample_dir)
 
@@ -127,41 +129,54 @@ data_transforms = transforms.Compose([transforms.RandomResizedCrop(256),
 
 train_dataset = GarmentDataset(args.rgb_dir, args.data_dir, args.data_type, args.train_label_dir)
 test_dataset = GarmentDataset(args.rgb_dir, args.data_dir, args.data_type, args.test_label_dir)
-train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=8)
-test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True, num_workers=8)
+train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=16)
+test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True, num_workers=16)
 
 vae = ConvVAE(img_channels=utils.DATA_SIZE, latent_size=utils.LATENT_SIZE).to(device)
-optimizer = optim.Adam(vae.parameters())
+optimizer = optim.Adam(vae.parameters(), lr=1e-4, weight_decay=1e-4)
+scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=5)
+earlystopping = EarlyStopping('min', patience=30)
 
 checkpoint_count = len(os.listdir(args.checkpoint_dir))
 reload_dir = os.path.join(args.checkpoint_dir, utils.BEST_FILENAME)
 if args.reload == 1 and os.path.exists(reload_dir):
-    state = torch.load(reload_dir)
+    best_state = torch.load(reload_dir)
     print('Reloading checkpoint......, file: ', reload_dir)
-    vae.load_state_dict(state['state_dict'])
-    optimizer.load_state_dict(state['optimizer_dict'])
+    vae.load_state_dict(best_state['state_dict'])
+    optimizer.load_state_dict(best_state['optimizer_dict'])
+    scheduler.load_state_dict(best_state['scheduler_dict'])
+    earlystopping.load_state_dict(best_state['earlystopping_dict'])
+
+# generate result
+if args.generate_sample == 1:
+    reload_dir = os.path.join(args.checkpoint_dir, utils.BEST_FILENAME)
+    best_state = torch.load(reload_dir)
+    print('Loading the best checkpoint......')
+    print('Start generate samples......')
+    vae.load_state_dict(best_state['state_dict'])
+    test_loss = test(vae, test_loader, 0, is_save=True)
+    os._exit(0)
 
 best_loss = None
 for epoch in range(args.epochs):
-    train_loss = train(vae, train_loader, epoch)
-    test_loss = test(vae, test_loader, epoch)
+    train_loss = train(vae, train_loader, checkpoint_count)
+    scheduler.step(train_loss)
+    earlystopping.step(train_loss)
+    test_loss = test(vae, test_loader, checkpoint_count)
     is_best = not best_loss or test_loss < best_loss
     if is_best:
         best_loss = test_loss
 
-    state = {'epoch': checkpoint_count,
-             'state_dict': vae.state_dict(),
-             'optimizer_dict': optimizer.state_dict(),
-             'train_loss': train_loss,
-             'test_loss': test_loss}
+    loss_state = {'epoch': checkpoint_count,
+                  'train_loss': train_loss,
+                  'test_loss': test_loss}
+    best_state = {'epoch': checkpoint_count,
+                  'state_dict': vae.state_dict(),
+                  'optimizer_dict': optimizer.state_dict(),
+                  'scheduler_dict': scheduler.state_dict(),
+                  'earlystopping_dict': earlystopping.state_dict(),
+                  'train_loss': train_loss,
+                  'test_loss': test_loss}
     checkpoint_name = os.path.join(args.checkpoint_dir, str(checkpoint_count) + '.pth')
-    utils.save_checkpoint(state, is_best, checkpoint_name, reload_dir)
+    utils.save_checkpoint(loss_state, best_state, is_best, checkpoint_name, reload_dir)
     checkpoint_count += 1
-
-# generate result
-reload_dir = os.path.join(args.checkpoint_dir, utils.BEST_FILENAME)
-state = torch.load(reload_dir)
-print('Loading the best checkpoint......')
-print('Start generate samples......')
-vae.load_state_dict(state['state_dict'])
-test_loss = test(vae, test_loader, 0, is_save=True)

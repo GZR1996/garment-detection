@@ -18,7 +18,7 @@ class GarmentDataset(Dataset):
         self.transform = transform
 
     def __len__(self):
-        return len(self.labels)
+        return int(len(self.labels)*0.2)
 
     def __getitem__(self, idx):
         if torch.is_tensor(idx):

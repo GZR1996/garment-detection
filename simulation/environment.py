@@ -75,13 +75,13 @@ class Environment:
         self.renderer = p.ER_BULLET_HARDWARE_OPENGL
 
         # parameters of camera
-        self.available_eye_positions = [[2, 0.0, 1.0], [0.0, 2, 1.0],
-                                        [-2, 0.0, 1.0], [0.0, -2.5, 1.0], [0.0, -1.0, 3.0]]
+        self.available_eye_positions = [[2.5, 0.0, 1.0], [0.0, 2.5, 1.0],
+                                        [-2.5, 0.0, 1.0], [0.0, -3.0, 1.0], [0.0, -1.0, 3.5]]
         self.available_target_positions = [[0., -0.55, 1.0], [0., -1.0, 1.0],
                                            [0., -0.85, 1.0], [0., -0.85, 1.0], [0., -0.85, 1.0]]
         self.target_position = np.array(self.cloth_position - [0.0, -0.2, 0.5])
         self.up_vector = np.array([0.0, 0.0, 1.0])
-        self.projection_matrix = p.computeProjectionMatrixFOV(fov=45.0, aspect=1.0, nearVal=0.1, farVal=3.1)
+        self.projection_matrix = p.computeProjectionMatrixFOV(fov=45.0, aspect=1.0, nearVal=0.1, farVal=4.1)
         self.view_matrics = []
         for eye_position, target_position in zip(self.available_eye_positions, self.available_target_positions):
             view_matrix = p.computeViewMatrix(cameraEyePosition=eye_position,
@@ -133,7 +133,7 @@ class Environment:
                         file_name = iteration_name + '_' + str(iteration) + '_' + str(eye_position)
                         thread = Thread(target=save, args=(file_name, camera_image))
                         thread.start()
-                        time.sleep(0.2)  # force the program sleep to avoid too many threads run at the same time
+                        time.sleep(0.05)  # force the program sleep to avoid too many threads run at the same time
 
                     iteration += 1
                     print("finish saving in ", time.time() - start)
