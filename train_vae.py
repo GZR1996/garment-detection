@@ -139,13 +139,15 @@ earlystopping = EarlyStopping('min', patience=30)
 
 checkpoint_count = len(os.listdir(args.checkpoint_dir))
 reload_dir = os.path.join(args.checkpoint_dir, utils.BEST_FILENAME)
-if args.reload == 1 and os.path.exists(reload_dir):
+if args.generate_sample == 0 and args.reload == 1 and os.path.exists(reload_dir):
     best_state = torch.load(reload_dir)
     print('Reloading checkpoint......, file: ', reload_dir)
     vae.load_state_dict(best_state['state_dict'])
     optimizer.load_state_dict(best_state['optimizer_dict'])
     scheduler.load_state_dict(best_state['scheduler_dict'])
     earlystopping.load_state_dict(best_state['earlystopping_dict'])
+    # delete useless parameter to get more gpu memory
+    del best_state
 
 # generate result
 if args.generate_sample == 1:
@@ -154,6 +156,8 @@ if args.generate_sample == 1:
     print('Loading the best checkpoint......')
     print('Start generate samples......')
     vae.load_state_dict(best_state['state_dict'])
+    # delete useless parameter to get more gpu memory
+    del best_state
     test_loss = test(vae, test_loader, 0, is_save=True)
     os._exit(0)
 

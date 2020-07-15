@@ -88,6 +88,15 @@ The vae model can record the physics parameters in latent factor and reproduce i
 The Variation Auto-encoder reproduce similar image with the input and the regression neural network predict same physics 
 parameters with the labels of images.
 
+### Variation Auto-encoder
+```
+python train_vae.py --batch_size=32 \
+                    --epochs=10 \
+                    --data_dir='path to your data folder' \
+                    --data_type='depth' \
+                    --reload=1
+```
+
 #### Reference
 [1] Kingma, D.P. and Welling, M., 2013. Auto-encoding variational bayes. arXiv preprint arXiv:1312.6114.  
 [2] Doersch, C., 2016. Tutorial on variational autoencoders. arXiv preprint arXiv:1606.05908.  
