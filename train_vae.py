@@ -17,7 +17,7 @@ from utils import utils
 from utils.utils import EarlyStopping
 
 DIRECTORY = os.path.abspath(os.path.dirname(__file__))
-CHECKPOINT_DIR = os.path.join(DIRECTORY, 'checkpoint')
+CHECKPOINT_DIR = os.path.join(DIRECTORY, 'checkpoint', 'vae')
 DATA_DIR = os.path.join(DIRECTORY, 'simulation', 'data', 'bin')
 RGB_DIR = os.path.join(DIRECTORY, 'simulation', 'data', 'rgb')
 SAMPLE_DIR = os.path.join(DIRECTORY, 'simulation', 'data', 'sample')
@@ -28,7 +28,7 @@ TEST_LABEL_DIR = os.path.join(DIRECTORY, 'simulation', 'data', 'test_label.csv')
 parser = argparse.ArgumentParser(description='Parameter of train_vae.py')
 parser.add_argument('--batch_size', type=int, default=32, help='The number of batches')
 parser.add_argument('--epochs', type=int, default=10, help='The number of epochs for training and testing')
-parser.add_argument('--checkpoint_dir', type=str, default=CHECKPOINT_DIR, help='Path to checkpoint folder')
+parser.add_argument('--checkpoint_dir', type=str, default=CHECKPOINT_DIR, help='Path to vae folder')
 parser.add_argument('--rgb_dir', type=str, default=RGB_DIR, help='Path to img folder')
 parser.add_argument('--data_dir', type=str, default=DATA_DIR, help='Path to data folder')
 parser.add_argument('--data_type', type=str, choices=['rgb', 'raw_depth', 'depth', 'segmentation'], default='depth',
@@ -37,7 +37,7 @@ parser.add_argument('--sample_dir', type=str, default=SAMPLE_DIR, help='Path to 
 parser.add_argument('--train_label_dir', type=str, default=TRAIN_LABEL_DIR, help='Path to train label')
 parser.add_argument('--test_label_dir', type=str, default=TRAIN_LABEL_DIR, help='Path to test label')
 parser.add_argument('--reload', type=int, default=1, choices=[0, 1],
-                    help='If true and previous checkpoint exists, reload the best checkpoint')
+                    help='If true and previous vae exists, reload the best vae')
 parser.add_argument('--generate_sample', type=int, choices=[0, 1], default=0,
                     help='If true, the model will not be trained and only generate samples')
 args = parser.parse_args()
@@ -141,7 +141,7 @@ checkpoint_count = len(os.listdir(args.checkpoint_dir))
 reload_dir = os.path.join(args.checkpoint_dir, utils.BEST_FILENAME)
 if args.generate_sample == 0 and args.reload == 1 and os.path.exists(reload_dir):
     best_state = torch.load(reload_dir)
-    print('Reloading checkpoint......, file: ', reload_dir)
+    print('Reloading vae......, file: ', reload_dir)
     vae.load_state_dict(best_state['state_dict'])
     optimizer.load_state_dict(best_state['optimizer_dict'])
     scheduler.load_state_dict(best_state['scheduler_dict'])
@@ -153,7 +153,7 @@ if args.generate_sample == 0 and args.reload == 1 and os.path.exists(reload_dir)
 if args.generate_sample == 1:
     reload_dir = os.path.join(args.checkpoint_dir, utils.BEST_FILENAME)
     best_state = torch.load(reload_dir)
-    print('Loading the best checkpoint......')
+    print('Loading the best vae......')
     print('Start generate samples......')
     vae.load_state_dict(best_state['state_dict'])
     # delete useless parameter to get more gpu memory
