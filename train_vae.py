@@ -71,6 +71,7 @@ def loss_function(recon_x, x, mu, log_sigma):
 
 
 def train(model, loader, epoch):
+    """ Train the model """
     model.train()
     train_loss = 0.0
     epoch_start = time.time()
@@ -96,6 +97,7 @@ def train(model, loader, epoch):
 
 
 def test(model, loader, epoch, is_save=False):
+    """ Test the model """
     model.eval()
     test_loss = 0
     epoch_start = time.time()
