@@ -27,7 +27,7 @@ parser.add_argument('--epochs', type=int, default=10, help='')
 parser.add_argument('--checkpoint_dir', type=str, default=CHECKPOINT_DIR, help='')
 parser.add_argument('--sample_dir', type=str, default=SAMPLE_DIR, help='')
 parser.add_argument('--train_label_dir', type=str, default=TRAIN_LABEL_DIR, help='Path to train label')
-parser.add_argument('--test_label_dir', type=str, default=TRAIN_LABEL_DIR, help='Path to test label')
+parser.add_argument('--test_label_dir', type=str, default=TEST_LABEL_DIR, help='Path to test label')
 parser.add_argument('--reload', type=int, default=1, choices=[0, 1],
                     help='If true and previous vae exists, reload the best vae')
 args = parser.parse_args()
@@ -75,8 +75,8 @@ def train(model, loader, criterion, stiffness, epoch):
         train_loss += loss.item()
         optimizer.step()
         if batch % 20 == 0:
-            print(
-                'Train epoch: {}, batch: {}, loss: {}, time: {}'.format(epoch, batch, loss, time.time() - epoch_start))
+            print('Train epoch: {}, batch: {}, loss: {}, time: {}'.format(epoch, batch, loss,
+                                                                          time.time() - epoch_start))
 
     avg_loss = train_loss / len(loader.dataset)
     print('Finish training epoch {}, average loss: {}, in {} seconds'.format(epoch,
@@ -88,7 +88,7 @@ def train(model, loader, criterion, stiffness, epoch):
 
 def test(model, loader, criterion, stiffness, epoch, is_save=False):
     model.eval()
-    test_loss = 0
+    test_loss = 0.0
     epoch_start = time.time()
     encoder = encoders[stiffness]
 
@@ -98,7 +98,11 @@ def test(model, loader, criterion, stiffness, epoch, is_save=False):
             outputs = model(sample)
             targets = encoder.transform([t for t in data['label'][stiffness]])
             targets = torch.tensor(targets).to(device)
-            test_loss += criterion(outputs, targets)
+            loss = criterion(outputs, targets)
+            test_loss += loss.item()
+            if batch % 20 == 0:
+                print('Test epoch: {}, batch: {}, loss: {}, time: {}'.format(epoch, batch, loss,
+                                                                             time.time() - epoch_start))
 
     avg_loss = test_loss / len(loader.dataset)
     print('Finish testing epoch {}, average loss: {}, in {} seconds'.format(epoch,
@@ -131,7 +135,6 @@ train_dataset = SampleDataset(args.sample_dir, args.train_label_dir)
 test_dataset = SampleDataset(args.sample_dir, args.test_label_dir)
 train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=16)
 test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True, num_workers=16)
-print(model)
 
 checkpoint_count = len(os.listdir(args.checkpoint_dir))
 reload_dir = os.path.join(args.checkpoint_dir, utils.BEST_FILENAME)
@@ -146,6 +149,7 @@ if args.reload == 1 and os.path.exists(reload_dir):
 best_loss = None
 stiffness = 'elastic'
 target_stiffness = TARGET_MAP[stiffness]
+
 for epoch in range(args.epochs):
     train_loss = train(model, train_loader, loss_function, target_stiffness, epoch)
     test_loss = test(model, test_loader, loss_function, target_stiffness, epoch)
@@ -160,7 +164,8 @@ for epoch in range(args.epochs):
                   'state_dict': model.state_dict(),
                   'optimizer_dict': optimizer.state_dict(),
                   'train_loss': train_loss,
-                  'test_loss': test_loss}
+                  'test_loss': test_loss,
+                  'best_loss': best_loss}
     checkpoint_name = os.path.join(args.checkpoint_dir, str(checkpoint_count) + '.pth')
     utils.save_checkpoint(loss_state, best_state, is_best, checkpoint_name, reload_dir)
     checkpoint_count += 1

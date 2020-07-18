@@ -35,7 +35,7 @@ parser.add_argument('--data_type', type=str, choices=['rgb', 'raw_depth', 'depth
                     help='The data type of data')
 parser.add_argument('--sample_dir', type=str, default=SAMPLE_DIR, help='Path to sample folder')
 parser.add_argument('--train_label_dir', type=str, default=TRAIN_LABEL_DIR, help='Path to train label')
-parser.add_argument('--test_label_dir', type=str, default=TRAIN_LABEL_DIR, help='Path to test label')
+parser.add_argument('--test_label_dir', type=str, default=TEST_LABEL_DIR, help='Path to test label')
 parser.add_argument('--reload', type=int, default=1, choices=[0, 1],
                     help='If true and previous vae exists, reload the best vae')
 parser.add_argument('--generate_sample', type=int, choices=[0, 1], default=0,
@@ -160,7 +160,8 @@ if args.generate_sample == 1:
     vae.load_state_dict(best_state['state_dict'])
     # delete useless parameter to get more gpu memory
     del best_state
-    test_loss = test(vae, test_loader, 0, is_save=True)
+    test(vae, train_loader, 0, is_save=True)
+    test(vae, test_loader, 0, is_save=True)
     os._exit(0)
 
 best_loss = None
