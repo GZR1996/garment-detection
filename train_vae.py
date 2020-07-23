@@ -21,8 +21,9 @@ CHECKPOINT_DIR = os.path.join(DIRECTORY, 'checkpoint', 'vae')
 DATA_DIR = os.path.join(DIRECTORY, 'simulation', 'data', 'bin')
 RGB_DIR = os.path.join(DIRECTORY, 'simulation', 'data', 'rgb')
 SAMPLE_DIR = os.path.join(DIRECTORY, 'simulation', 'data', 'sample')
-TRAIN_LABEL_DIR = os.path.join(DIRECTORY, 'simulation', 'data', 'train_label.csv')
-TEST_LABEL_DIR = os.path.join(DIRECTORY, 'simulation', 'data', 'test_label.csv')
+TRAIN_LABEL_DIR = os.path.join(DIRECTORY, 'simulation', 'data', 'vae', 'train_label.csv')
+TEST_LABEL_DIR = os.path.join(DIRECTORY, 'simulation', 'data', 'vae', 'test_label.csv')
+VALIDATE_LABEL_DIR = os.path.join(DIRECTORY, 'simulation', 'data', 'vae', 'validate_label.csv')
 
 # parameters of training
 parser = argparse.ArgumentParser(description='Parameter of train_vae.py')
@@ -36,6 +37,7 @@ parser.add_argument('--data_type', type=str, choices=['rgb', 'raw_depth', 'depth
 parser.add_argument('--sample_dir', type=str, default=SAMPLE_DIR, help='Path to sample folder')
 parser.add_argument('--train_label_dir', type=str, default=TRAIN_LABEL_DIR, help='Path to train label')
 parser.add_argument('--test_label_dir', type=str, default=TEST_LABEL_DIR, help='Path to test label')
+parser.add_argument('--validate_label_dir', type=str, default=VALIDATE_LABEL_DIR, help='Path to test label')
 parser.add_argument('--reload', type=int, default=1, choices=[0, 1],
                     help='If true and previous vae exists, reload the best vae')
 parser.add_argument('--generate_sample', type=int, choices=[0, 1], default=0,
@@ -43,6 +45,7 @@ parser.add_argument('--generate_sample', type=int, choices=[0, 1], default=0,
 args = parser.parse_args()
 
 if not os.path.exists(args.checkpoint_dir):
+    os.mkdir('./checkpoint')
     os.mkdir(args.checkpoint_dir)
 if not os.path.exists(args.sample_dir):
     os.mkdir(args.sample_dir)
@@ -131,8 +134,10 @@ data_transforms = transforms.Compose([transforms.RandomResizedCrop(256),
 
 train_dataset = GarmentDataset(args.rgb_dir, args.data_dir, args.data_type, args.train_label_dir)
 test_dataset = GarmentDataset(args.rgb_dir, args.data_dir, args.data_type, args.test_label_dir)
+validate_dataset = GarmentDataset(args.rgb_dir, args.data_dir, args.data_type, args.validate_label_dir)
 train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=16)
 test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True, num_workers=16)
+validate_loader = DataLoader(validate_dataset, batch_size=args.batch_size, shuffle=True, num_workers=16)
 
 vae = ConvVAE(img_channels=utils.DATA_SIZE, latent_size=utils.LATENT_SIZE).to(device)
 optimizer = optim.Adam(vae.parameters(), lr=1e-4, weight_decay=1e-4)
@@ -160,8 +165,10 @@ if args.generate_sample == 1:
     vae.load_state_dict(best_state['state_dict'])
     # delete useless parameter to get more gpu memory
     del best_state
-    test(vae, train_loader, 0, is_save=True)
+    # test(vae, train_loader, 0, is_save=True)
+    test(vae, validate_loader, 0, is_save=True)
     test(vae, test_loader, 0, is_save=True)
+    test(vae, train_loader, 0, is_save=True)
     os._exit(0)
 
 best_loss = None
@@ -183,7 +190,8 @@ for epoch in range(args.epochs):
                   'scheduler_dict': scheduler.state_dict(),
                   'earlystopping_dict': earlystopping.state_dict(),
                   'train_loss': train_loss,
-                  'test_loss': test_loss}
+                  'test_loss': test_loss,
+                  'best_loss': best_loss}
     checkpoint_name = os.path.join(args.checkpoint_dir, str(checkpoint_count) + '.pth')
     utils.save_checkpoint(loss_state, best_state, is_best, checkpoint_name, reload_dir)
     checkpoint_count += 1

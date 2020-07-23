@@ -2,4 +2,4 @@
 .vscode
 /simulation/data*
 /venv
-/checkpoint/vae
+/checkpoint*
