@@ -182,25 +182,22 @@ if args.generate_result == 1:
     test(model, test_loader, loss_function, target_stiffness, 0, is_save=True)
     os._exit(0)
 
-for batch, data in enumerate(train_loader):
-    print(data)
-    break
-# for epoch in range(args.epochs):
-#     train_loss = train(model, train_loader, loss_function, target_stiffness, epoch)
-#     test_loss = test(model, test_loader, loss_function, target_stiffness, epoch)
-#     is_best = not best_loss or test_loss < best_loss
-#     if is_best:
-#         best_loss = test_loss
-#
-#     loss_state = {'epoch': checkpoint_count,
-#                   'train_loss': train_loss,
-#                   'test_loss': test_loss}
-#     best_state = {'epoch': checkpoint_count,
-#                   'state_dict': model.state_dict(),
-#                   'optimizer_dict': optimizer.state_dict(),
-#                   'train_loss': train_loss,
-#                   'test_loss': test_loss,
-#                   'best_loss': best_loss}
-#     checkpoint_name = os.path.join(args.checkpoint_dir, str(checkpoint_count) + '.pth')
-#     utils.save_checkpoint(loss_state, best_state, is_best, checkpoint_name, reload_dir)
-#     checkpoint_count += 1
+for epoch in range(args.epochs):
+    train_loss = train(model, train_loader, loss_function, target_stiffness, epoch)
+    test_loss = test(model, test_loader, loss_function, target_stiffness, epoch)
+    is_best = not best_loss or test_loss < best_loss
+    if is_best:
+        best_loss = test_loss
+
+    loss_state = {'epoch': checkpoint_count,
+                  'train_loss': train_loss,
+                  'test_loss': test_loss}
+    best_state = {'epoch': checkpoint_count,
+                  'state_dict': model.state_dict(),
+                  'optimizer_dict': optimizer.state_dict(),
+                  'train_loss': train_loss,
+                  'test_loss': test_loss,
+                  'best_loss': best_loss}
+    checkpoint_name = os.path.join(args.checkpoint_dir, str(checkpoint_count) + '.pth')
+    utils.save_checkpoint(loss_state, best_state, is_best, checkpoint_name, reload_dir)
+    checkpoint_count += 1

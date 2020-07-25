@@ -77,17 +77,10 @@ class Environment:
         # parameters of camera
         self.available_eye_positions = [[2.5, 0.0, 1.0], [0.0, 2.5, 1.0],
                                         [-2.5, 0.0, 1.0], [0.0, -3.0, 1.0], [0.0, -1.0, 3.5]]
-        self.available_target_positions = [[0., -0.55, 1.0], [0., -1.0, 1.0],
-                                           [0., -0.85, 1.0], [0., -0.85, 1.0], [0., -0.85, 1.0]]
-        self.target_position = np.array(self.cloth_position - [0.0, -0.2, 0.5])
+        # self.available_target_positions = [[0., -0.55, 1.0], [0., -1.0, 1.0],
+        #                                    [0., -0.85, 1.0], [0., -0.85, 1.0], [0., -0.85, 1.0]]
         self.up_vector = np.array([0.0, 0.0, 1.0])
         self.projection_matrix = p.computeProjectionMatrixFOV(fov=45.0, aspect=1.0, nearVal=0.1, farVal=4.1)
-        self.view_matrics = []
-        for eye_position, target_position in zip(self.available_eye_positions, self.available_target_positions):
-            view_matrix = p.computeViewMatrix(cameraEyePosition=eye_position,
-                                              cameraTargetPosition=target_position,
-                                              cameraUpVector=self.up_vector)
-            self.view_matrics.append(view_matrix)
 
         self.height = 256
         self.width = 256
@@ -123,9 +116,12 @@ class Environment:
                         p.removeConstraint(anchor_id)
 
                 # after releasing the cloth, record the data every 25 frame of simulation
-                if step % 50 == 0:
-                    pass
-                    for eye_position, view_matrix in enumerate(self.view_matrics):
+                if step > 200 and step % 50 == 0:
+                    for eye_position, view_matrix in enumerate(self.available_eye_positions):
+                        target_position = p.getBasePositionanAndOrientaion(cloth_id)
+                        view_matrix = p.computeViewMatrix(cameraEyePosition=eye_position,
+                                                          cameraTargetPosition=target_position,
+                                                          cameraUpVector=self.up_vector)
                         camera_image = p.getCameraImage(width=self.width, height=self.height,
                                                         viewMatrix=view_matrix,
                                                         projectionMatrix=self.projection_matrix,
