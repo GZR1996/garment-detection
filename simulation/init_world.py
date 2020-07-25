@@ -9,17 +9,15 @@ from simulation.environment import DIRECTORY
 from simulation.environment import DATA_FOLDER_NAME
 
 # the parameter of cloth
-table_position = np.array([0, -0.75, 0])
+table_position = np.array([0.0, 0.0, 0.0])
 
 # the parameter of cloth
-cloth_position = np.array([0, -1, 0.65])
-cloth_orientation = np.array([0, 0, np.pi])
-cloth_color = np.array([1, 0.5, 0.5, 1])
-cloth_line_color = np.array([0, 0.5, 0, 1])
+cloth_position = np.array([0.0, 0.0, 0.65])
+cloth_orientation = np.array([0.0, 0.0, np.pi])
 
 # simulation
 environment = Environment(table_position, cloth_position)
-# environment.simulate()
+environment.simulate()
 
 # generate labels
 # for vae

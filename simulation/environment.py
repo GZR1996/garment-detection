@@ -75,12 +75,9 @@ class Environment:
         self.renderer = p.ER_BULLET_HARDWARE_OPENGL
 
         # parameters of camera
-        self.available_eye_positions = [[2.5, 0.0, 1.0], [0.0, 2.5, 1.0],
-                                        [-2.5, 0.0, 1.0], [0.0, -3.0, 1.0], [0.0, -1.0, 3.5]]
-        # self.available_target_positions = [[0., -0.55, 1.0], [0., -1.0, 1.0],
-        #                                    [0., -0.85, 1.0], [0., -0.85, 1.0], [0., -0.85, 1.0]]
+        self.available_eye_positions = [[1.0, 0.0, 1.0], [0.0, 1.0, 1.0],
+                                        [-1.0, 0.0, 1.0], [0.0, -1.0, 1.0], [0.0, -1.0, 2.5]]
         self.up_vector = np.array([0.0, 0.0, 1.0])
-        self.projection_matrix = p.computeProjectionMatrixFOV(fov=45.0, aspect=1.0, nearVal=0.1, farVal=4.1)
 
         self.height = 256
         self.width = 256
@@ -90,7 +87,7 @@ class Environment:
         simulate the environment using pybullet and save file
         :return:
         """
-        for parameter_count in range(0, 1000, 1):
+        for parameter_count in range(1000):
             indexes = cal_parameter_group(parameter_count)
             spring_elastic_stiffness = self.elastic_stiffness_range[indexes[0]]
             spring_damping_stiffness = self.damping_stiffness_range[indexes[1]]
@@ -116,17 +113,18 @@ class Environment:
                         p.removeConstraint(anchor_id)
 
                 # after releasing the cloth, record the data every 25 frame of simulation
-                if step > 200 and step % 50 == 0:
-                    for eye_position, view_matrix in enumerate(self.available_eye_positions):
-                        target_position = p.getBasePositionanAndOrientaion(cloth_id)
+                if step >= 50 and step % 50 == 0:
+                    for camera_position, eye_position in enumerate(self.available_eye_positions[4:5]):
+                        target_position = p.getBasePositionAndOrientation(cloth_id)[0]
                         view_matrix = p.computeViewMatrix(cameraEyePosition=eye_position,
                                                           cameraTargetPosition=target_position,
                                                           cameraUpVector=self.up_vector)
+                        projection_matrix = p.computeProjectionMatrixFOV(fov=45.0, aspect=1.0, nearVal=0.01, farVal=5.1)
                         camera_image = p.getCameraImage(width=self.width, height=self.height,
                                                         viewMatrix=view_matrix,
-                                                        projectionMatrix=self.projection_matrix,
+                                                        projectionMatrix= projection_matrix,
                                                         renderer=self.renderer)
-                        file_name = iteration_name + '_' + str(iteration) + '_' + str(eye_position)
+                        file_name = iteration_name + '_' + str(iteration) + '_' + str(camera_position)
                         thread = Thread(target=save, args=(file_name, camera_image))
                         thread.start()
                         time.sleep(0.05)  # force the program sleep to avoid too many threads run at the same time
