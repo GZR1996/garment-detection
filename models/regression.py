@@ -5,21 +5,43 @@ import torch.nn.functional as F
 
 class Regression(nn.Module):
     """ Regression Network"""
-
     def __init__(self):
         super(Regression, self).__init__()
-        self.conv1 = nn.Conv2d(1, 6, 3)
-        self.conv2 = nn.Conv2d(6, 16, 3)
-        self.fc1 = nn.Linear(16 * 6 * 6, 120)  # 6*6 from image dimension
+        self.unit1 = Unit()
+        self.unit2 = Unit()
+        self.unit3 = Unit()
+        self.fc1 = nn.Linear(3*32, 64)
+        self.fc2 = nn.Linear(64, 32)
+        self.fc3 = nn.Linear(32, 10)
+
+    def forward(self, x1, x2, x3):
+        y1 = self.unit1(x1)
+        y2 = self.unit2(x2)
+        y3 = self.unit3(x3)
+
+        y = torch.cat((y1, y2, y3), 1)
+        y = F.sigmoid(self.fc1(y))
+        y = F.sigmoid(self.fc2(y))
+        y = F.sigmoid(self.fc3(y))
+        return y
+
+
+class Unit(nn.Module):
+    def __init__(self):
+        super(Unit, self).__init__()
+        self.conv1 = nn.Conv2d(1, 4, 3, padding=1, stride=2)
+        self.conv2 = nn.Conv2d(4, 8, 3, padding=1, stride=2)
+        self.fc1 = nn.Linear(8*16*16, 120)
         self.fc2 = nn.Linear(120, 84)
-        self.fc3 = nn.Linear(84, 10)
+        self.fc3 = nn.Linear(84, 32)
 
     def forward(self, x):
-        x = F.max_pool2d(F.relu(self.conv1(x)), (2, 2))
+        x = F.relu(self.conv1(x))
+        x = F.max_pool2d(x, (2, 2))
         x = F.max_pool2d(F.relu(self.conv2(x)), 2)
         x = x.view(-1, self.num_flat_features(x))
         x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
+        x = F.sigmoid(self.fc2(x))
         x = self.fc3(x)
         return x
 

@@ -9,22 +9,21 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
-from models.conv_vae import ConvVAE
-from utils.garment_dataset import GarmentDataset
+from models.conv_regression import ConvRegression
+from utils.garment_dataset2 import GarmentDataset
 from utils import utils
 
 # Constants
 from utils.utils import EarlyStopping
 
 DIRECTORY = os.path.abspath(os.path.dirname(__file__))
-CHECKPOINT_DIR = os.path.join(DIRECTORY, 'checkpoint', 'vae')
+CHECKPOINT_DIR = os.path.join(DIRECTORY, 'checkpoint', 'vae_regression')
 DATA_DIR = os.path.join(DIRECTORY, 'simulation', 'data', 'bin')
 RGB_DIR = os.path.join(DIRECTORY, 'simulation', 'data', 'rgb')
 SAMPLE_DIR = os.path.join(DIRECTORY, 'simulation', 'data', 'sample')
-TRAIN_LABEL_DIR = os.path.join(DIRECTORY, 'simulation', 'data', 'vae', 'train_label.csv')
-TEST_LABEL_DIR = os.path.join(DIRECTORY, 'simulation', 'data', 'vae', 'test_label.csv')
-VALIDATE_LABEL_DIR = os.path.join(DIRECTORY, 'simulation', 'data', 'vae', 'validate_label.csv')
-ALL_DIR = os.path.join(DIRECTORY, 'simulation', 'data', 'all.csv')
+TRAIN_LABEL_DIR = os.path.join(DIRECTORY, 'simulation', 'data', 'regression', 'train_label.csv')
+TEST_LABEL_DIR = os.path.join(DIRECTORY, 'simulation', 'data', 'regression', 'test_label.csv')
+VALIDATE_LABEL_DIR = os.path.join(DIRECTORY, 'simulation', 'data', 'regression', 'validate_label.csv')
 
 # parameters of training
 parser = argparse.ArgumentParser(description='Parameter of train_vae.py')
@@ -82,10 +81,10 @@ def train(model, loader, epoch):
     epoch_start = time.time()
 
     for batch, data in enumerate(loader):
-        sample = data['sample'].to(device)
+        samples = data['samples'].to(device)
         optimizer.zero_grad()
-        recon_batch, mu, sigma = model(sample)
-        loss = loss_function(recon_batch, sample, mu, sigma)
+        recon_batch, mu, sigma = model(samples[0], samples[1], samples[2])
+        loss = loss_function(recon_batch, samples, mu, sigma)
         loss.backward()
         train_loss += loss.item()
         optimizer.step()
@@ -134,14 +133,14 @@ data_transforms = transforms.Compose([transforms.RandomResizedCrop(256),
                                       transforms.ToTensor(),
                                       transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
 
-train_dataset = GarmentDataset(args.rgb_dir, args.data_dir, args.data_type, args.train_label_dir)
-test_dataset = GarmentDataset(args.rgb_dir, args.data_dir, args.data_type, args.test_label_dir)
-validate_dataset = GarmentDataset(args.rgb_dir, args.data_dir, args.data_type, args.validate_label_dir)
+train_dataset = GarmentDataset(args.data_dir, args.data_type, args.train_label_dir)
+test_dataset = GarmentDataset(args.data_dir, args.data_type, args.test_label_dir)
+validate_dataset = GarmentDataset(args.data_dir, args.data_type, args.validate_label_dir)
 train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=16)
 test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True, num_workers=16)
 validate_loader = DataLoader(validate_dataset, batch_size=args.batch_size, shuffle=True, num_workers=16)
 
-vae = ConvVAE(img_channels=utils.DATA_SIZE, latent_size=utils.LATENT_SIZE).to(device)
+vae = ConvRegression(img_channels=utils.DATA_SIZE, latent_size=utils.LATENT_SIZE).to(device)
 optimizer = optim.Adam(vae.parameters(), lr=1e-4, weight_decay=1e-4)
 scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=5)
 earlystopping = EarlyStopping('min', patience=30)
@@ -167,9 +166,10 @@ if args.generate_sample == 1:
     vae.load_state_dict(best_state['state_dict'])
     # delete useless parameter to get more gpu memory
     del best_state
-    all_dataset = GarmentDataset(args.rgb_dir, args.data_dir, args.data_type, ALL_DIR)
-    all_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=16)
-    test(vae, all_loader, 0, is_save=True)
+    # test(vae, train_loader, 0, is_save=True)
+    test(vae, validate_loader, 0, is_save=True)
+    test(vae, test_loader, 0, is_save=True)
+    test(vae, train_loader, 0, is_save=True)
     os._exit(0)
 
 best_loss = None
@@ -179,7 +179,7 @@ for epoch in range(args.epochs):
     earlystopping.step(train_loss)
     test_loss = test(vae, test_loader, checkpoint_count)
     is_best = not best_loss or test_loss < best_loss
-    if is_best:
+    if True:
         best_loss = test_loss
 
     loss_state = {'epoch': checkpoint_count,

@@ -13,12 +13,12 @@ BEST_FILENAME = 'best.pth'
 
 def save_checkpoint(loss_state, best_state, is_best, filename, best_filename):
     """
-    Save vae and store the best vae
+    Save vae1 and store the best vae1
     :param loss_state: loss of each epoch
     :param best_state: dict of model, include parameters and states
-    :param is_best: boolean, mark if the vae is the best
+    :param is_best: boolean, mark if the vae1 is the best
     :param filename: filename to save
-    :param best_filename: the filename of best vae
+    :param best_filename: the filename of best vae1
     :return: None
     """
     torch.save(loss_state, filename)
@@ -28,7 +28,6 @@ def save_checkpoint(loss_state, best_state, is_best, filename, best_filename):
 
 def save_image(sample_dir, data, labels):
     """
-
     :param sample_dir:
     :param data:
     :param label:

@@ -15,24 +15,32 @@ class SampleDataset(Dataset):
         self.transform = transform
 
     def __len__(self):
-        return int(len(self.sample_names) * 0.2)
+        return int(len(self.sample_names))
 
     def __getitem__(self, idx):
         if torch.is_tensor(idx):
             idx = idx.to_list()
 
         sample_names = self.sample_names.iloc[idx]
-        samples = []
-        for sample_name in sample_names:
-            sample_name = os.path.join(self.sample_dir, sample_name)
-            print(sample_names)
-            data = np.load(sample_name)
-            sample = np.expand_dims(data['image'], axis=0)
-            if self.transform:
-                sample = self.transform(sample)
-            samples.append(samples)
+        sample_name = os.path.join(self.sample_dir, sample_names[0])
+        data = np.load(sample_name)
+        sample1 = np.expand_dims(data['image'], axis=0)
+        if self.transform:
+            sample1 = self.transform(sample1)
+
+        sample_name = os.path.join(self.sample_dir, sample_names[1])
+        data = np.load(sample_name)
+        sample2 = np.expand_dims(data['image'], axis=0)
+        if self.transform:
+            sample2 = self.transform(sample2)
+
+        sample_name = os.path.join(self.sample_dir, sample_names[2])
+        data = np.load(sample_name)
+        sample3 = np.expand_dims(data['image'], axis=0)
+        if self.transform:
+            sample3 = self.transform(sample3)
 
         label = sample_names[0].replace('.npz\n', '').split('_')[:3]
         label = np.array([float(label[0]), float(label[1]), float(label[2])])
 
-        return {'sample': np.array(sample), 'label': label}
+        return {'x1': sample1, 'x2': sample2, 'x3': sample3, 'label': label}

@@ -114,7 +114,7 @@ class Environment:
 
                 # after releasing the cloth, record the data every 25 frame of simulation
                 if step >= 50 and step % 50 == 0:
-                    for camera_position, eye_position in enumerate(self.available_eye_positions[4:5]):
+                    for camera_position, eye_position in enumerate(self.available_eye_positions):
                         target_position = p.getBasePositionAndOrientation(cloth_id)[0]
                         view_matrix = p.computeViewMatrix(cameraEyePosition=eye_position,
                                                           cameraTargetPosition=target_position,

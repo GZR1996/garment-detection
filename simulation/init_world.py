@@ -17,13 +17,13 @@ cloth_orientation = np.array([0.0, 0.0, np.pi])
 
 # simulation
 environment = Environment(table_position, cloth_position)
-environment.simulate()
+# environment.simulate()
 
 # generate labels
 # for vae
 file_list = os.listdir(os.path.join(DIRECTORY, DATA_FOLDER_NAME, 'bin'))
 with open('./data/all.csv', 'w') as fin:
-    fin.writelines(file_list)
+    fin.writelines((path.replace('.npz', '\n').replace('_', ',') for path in file_list))
 random.shuffle(file_list)
 
 boundary1 = int(0.8*len(file_list))
@@ -45,7 +45,7 @@ with open('./data/vae/test_label.csv', 'w') as fin:
 esr = environment.elastic_stiffness_range
 dsr = environment.damping_stiffness_range
 bsr = environment.bending_stiffness_range
-tr = range(6, 30, 4)
+tr = range(0, 27, 3)
 cr = range(5)
 
 random.seed(123)
@@ -59,9 +59,9 @@ for parameter_count in range(0, 1000, 1):
     for c in cr:
         for t in tr:
             line = ''
-            for i in range(t, t+4):
+            for i in range(t, t+3):
                 line += '{:.1f}_{:.1f}_{:.1f}_{:.0f}_{:.0f}.npz'.format(es, ds, bs, i, c)
-                if i != t+3:
+                if i != t+2:
                     line += ','
                 else:
                     line += '\n'
