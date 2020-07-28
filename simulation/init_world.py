@@ -17,7 +17,7 @@ cloth_orientation = np.array([0.0, 0.0, np.pi])
 
 # simulation
 environment = Environment(table_position, cloth_position)
-# environment.simulate()
+environment.simulate()
 
 # generate labels
 # for vae

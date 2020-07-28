@@ -3,7 +3,7 @@ import time
 import numpy as np
 import pybullet as p
 import pybullet_data
-import imageio
+from PIL import Image
 from threading import Thread
 
 ASSERT_NAME = 'asserts'
@@ -34,8 +34,10 @@ def save(file_name, camera_image):
     :return:
     """
     rgb_data = np.array(camera_image[2])
-    path = os.path.join(RBG_PATH, file_name + '.png')
-    imageio.imwrite(path, rgb_data)
+    path = os.path.join(RBG_PATH, file_name + '.jpg')
+    rgb_data = Image.fromarray(rgb_data)
+    rgb_data = rgb_data.convert('RGB')
+    rgb_data.save(path)
 
     raw_depth_data = np.array(camera_image[3])
     segmentation_data = np.array(camera_image[4])
@@ -79,8 +81,8 @@ class Environment:
                                         [-1.0, 0.0, 1.0], [0.0, -1.0, 1.0], [0.0, -1.0, 2.5]]
         self.up_vector = np.array([0.0, 0.0, 1.0])
 
-        self.height = 256
-        self.width = 256
+        self.height = 64
+        self.width = 64
 
     def simulate(self):
         """
@@ -102,7 +104,7 @@ class Environment:
                                                            spring_bending_stiffness)
             print("Saving file: ", iteration_name)
             start = time.time()
-            for step in range(1500):
+            for step in range(1150):
                 # suspend and release the cloth
                 if step == 0:
                     p.resetBaseVelocity(cloth_id, linearVelocity=[0, 0, 0.5])
