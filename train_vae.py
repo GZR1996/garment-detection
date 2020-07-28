@@ -187,6 +187,7 @@ for epoch in range(args.epochs):
                   'test_loss': test_loss}
     best_state = {'epoch': checkpoint_count,
                   'state_dict': vae.state_dict(),
+                  'encoder_dict': vae.encoder.state_dict(),
                   'optimizer_dict': optimizer.state_dict(),
                   'scheduler_dict': scheduler.state_dict(),
                   'earlystopping_dict': earlystopping.state_dict(),

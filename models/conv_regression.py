@@ -15,14 +15,12 @@ class TriEncoder(nn.Module):
 
     def __init__(self, img_channels, latent_size):
         super(TriEncoder, self).__init__()
-        self.encoder1 = Encoder(img_channels, latent_size)
-        self.encoder2 = Encoder(img_channels, latent_size)
-        self.encoder3 = Encoder(img_channels, latent_size)
+        self.encoder = Encoder(img_channels, latent_size)
 
     def forward(self, x1, x2, x3):
-        mu1, log_sigma1 = self.encoder1(x1)
-        mu2, log_sigma2 = self.encoder2(x2)
-        mu3, log_sigma3 = self.encoder3(x3)
+        mu1, log_sigma1 = self.encoder(x1)
+        mu2, log_sigma2 = self.encoder(x2)
+        mu3, log_sigma3 = self.encoder(x3)
 
         sigma = torch.cat((log_sigma1.exp(), log_sigma2.exp(), log_sigma3.exp()), 1)
         mu = torch.cat((mu1, mu2, mu3), 1)

@@ -21,8 +21,8 @@ from utils.utils import EarlyStopping
 
 DIRECTORY = os.path.abspath(os.path.dirname(__file__))
 SAMPLE_DIR = os.path.join(DIRECTORY, 'simulation', 'data', 'sample')
-TRAIN_LABEL_DIR = os.path.join(DIRECTORY, 'simulation', 'data', 'regression', 'train_label.csv')
-TEST_LABEL_DIR = os.path.join(DIRECTORY, 'simulation', 'data', 'regression', 'test_label.csv')
+TRAIN_LABEL_DIR = os.path.join(DIRECTORY, 'simulation', 'data', 'rr', 'train_label.csv')
+TEST_LABEL_DIR = os.path.join(DIRECTORY, 'simulation', 'data', 'rr', 'test_label.csv')
 CHECKPOINT_DIR = os.path.join(DIRECTORY, 'checkpoint', 'regression')
 RESULT_DIR = os.path.join(DIRECTORY, 'result')
 TARGET_MAP = {'elastic': 0, 'damping': 1, 'bending': 2}
@@ -63,7 +63,7 @@ def load_model(model_name, num_classes, feature_extract, use_pretrained=True):
         model_ft = models.vgg11_bn(pretrained=use_pretrained)
         set_parameter_requires_grad(model_ft, feature_extract)
         num_features = model_ft.classifier[6].in_features
-        # model_ft.features[0] = nn.Conv2d(1, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        model_ft.features[0] = nn.Conv2d(1, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
         model_ft.classifier[6] = nn.Linear(num_features, num_classes)
         input_size = 224
         return model_ft, input_size
@@ -97,13 +97,12 @@ def train(encoder, model, loader, criterion, stiffness, epoch):
     label_encoer = label_encoders[stiffness]
 
     for batch, data in enumerate(loader):
-        x1 = data['x1'].to(device)
-        x2 = data['x2'].to(device)
-        x3 = data['x3'].to(device)
         optimizer.zero_grad()
         with torch.no_grad():
-            z = encoder(x1, x2, x3)
-        z = z.view(-1, 3, 32, 32)
+            x1 = data['x1'].to(device)
+            x2 = data['x2'].to(device)
+            x3 = data['x3'].to(device)
+            z = encoder(x1, x2, x3).view(-1, 1, 32, 96)
         outputs = model(z)
         outputs = torch.tensor([torch.argmax(o) for o in outputs], dtype=torch.float, requires_grad=True).to(device)
         # print(batch, [np.argmax(o) for o in outputs.detach().cpu().numpy()])
@@ -142,13 +141,14 @@ def test(encoder, model, loader, criterion, stiffness, epoch, is_save=False):
             x2 = data['x2'].to(device)
             x3 = data['x3'].to(device)
             z = encoder(x1, x2, x3)
-            z = z.view(-1, 3, 32, 32)
+            z = z.view(-1, 1, 32, 96)
             outputs = model(z)
             outputs = torch.tensor([torch.argmax(o) for o in outputs], dtype=torch.float, requires_grad=True).to(device)
             targets = label_encoder.transform([t for t in data['label'][:, stiffness]])
-            targets_ = torch.tensor(targets).to(device)
+            targets_ = torch.tensor(targets, dtype=torch.float).to(device)
             loss = criterion(outputs, targets_)
             test_loss += loss.item()
+
             if is_save:
                 true_labels.extend(targets)
                 results.extend(outputs.cpu().numpy())
@@ -156,15 +156,12 @@ def test(encoder, model, loader, criterion, stiffness, epoch, is_save=False):
                 print('Test epoch: {}, batch: {}, loss: {}, time: {}'.format(epoch, batch, loss,
                                                                              time.time() - epoch_start))
                 print('Example outputs: ', outputs)
-        print(np.array(results))
+
     avg_loss = test_loss / len(loader.dataset)
     if is_save:
         print(classification_report(true_labels, results))
         results = label_encoder.inverse_transform(results)
         np.savetxt(os.path.join(args.result_dir, 'result.csv'), results, delimiter=',')
-        print(true_labels)
-        print(results)
-
     else:
         print('Finish testing epoch {}, average loss: {}, in {} seconds'.format(epoch,
                                                                                 avg_loss,
@@ -185,11 +182,11 @@ bending_le = preprocessing.LabelEncoder()
 bending_le.fit(bending_stiffness_range)
 label_encoders = [elastic_le, damping_le, bending_le]
 
-model, input_size = load_model('vgg', 10, False, use_pretrained=True)
+model, input_size = load_model('vgg', 10, True, use_pretrained=True)
 # model = ConvRegression(utils.DATA_SIZE, utils.LATENT_SIZE)
 encoder = TriEncoder(utils.DATA_SIZE, utils.LATENT_SIZE).to(device)
 model = model.to(device)
-optimizer = optim.Adam(model.parameters(), lr=1e-4, weight_decay=1e-4)
+optimizer = optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-4)
 scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=5)
 earlystopping = EarlyStopping('min', patience=30)
 loss_function = nn.MSELoss()
@@ -215,9 +212,7 @@ reload_dir = os.path.join(args.checkpoint_dir, utils.BEST_FILENAME)
 #     os._exit(0)
 # else:
 encoder_state = torch.load('./checkpoint/vae/best.pth', map_location='cpu')
-encoder.encoder1.load_state_dict(encoder_state['encoder_dict'])
-encoder.encoder2.load_state_dict(encoder_state['encoder_dict'])
-encoder.encoder3.load_state_dict(encoder_state['encoder_dict'])
+encoder.encoder.load_state_dict(encoder_state['encoder_dict'])
 del encoder_state
 if args.generate_result == 0 and args.reload == 1 and os.path.exists(reload_dir):
     best_state = torch.load(reload_dir)
