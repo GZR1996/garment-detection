@@ -15,7 +15,7 @@ class TriEncoder(nn.Module):
 
     def __init__(self, img_channels, latent_size):
         super(TriEncoder, self).__init__()
-        self.encoder = Encoder(img_channels, latent_size)
+        self.encoder = Encoder_(img_channels, latent_size)
 
     def forward(self, x1, x2, x3):
         mu1, log_sigma1 = self.encoder(x1)
@@ -27,6 +27,37 @@ class TriEncoder(nn.Module):
         eps = torch.randn_like(sigma)
         z = eps.mul(sigma).add_(mu)
         return z
+
+
+class Encoder_(nn.Module):
+    """ VAE encoder """
+
+    def __init__(self, img_channels, latent_size):
+        super(Encoder_, self).__init__()
+        self.latent_size = latent_size
+        self.img_channels = img_channels
+
+        self.conv1 = nn.Conv2d(img_channels, 32, 4, stride=2)
+        self.conv2 = nn.Conv2d(32, 64, 4, stride=2)
+        self.conv3 = nn.Conv2d(64, 128, 4, stride=2)
+        self.conv4 = nn.Conv2d(128, 256, 4, stride=2)
+
+        self.fc_mu = nn.Linear(2*2*256, latent_size)
+        self.fc_log_sigma = nn.Linear(2*2*256, latent_size)
+
+    def forward(self, x):
+        x = F.relu(self.conv1(x))
+        x = F.relu(self.conv2(x))
+        x = F.relu(self.conv3(x))
+        x = F.relu(self.conv4(x))
+
+        x = x.view(x.size(0), -1)
+
+        mu = self.fc_mu(x)
+        log_sigma = self.fc_log_sigma(x)
+
+        return mu, log_sigma
+
 
 class ConvRegression(nn.Module):
     """ VAE """

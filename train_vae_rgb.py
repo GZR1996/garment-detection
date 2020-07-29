@@ -8,6 +8,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from torchvision import transforms
+from torchvision.utils import save_image
 
 from models.conv_vae_rgb import ConvVAE
 from utils.rgb_dataset import GarmentDataset
@@ -115,8 +116,12 @@ def test(model, loader, epoch, is_save=False):
             if is_save:
                 if batch % 20 == 0:
                     print('Saving {} batch images in {} seconds'.format(batch, time.time() - epoch_start))
-                images = recon_batch.view([-1, 256, 256])
-                utils.save_image(args.sample_dir, np.asarray(images.to('cpu')), np.asarray(data['label']))
+                for recon, label in zip(recon_batch, data['label']):
+                    image_dir = os.path.join(args.sample_dir,
+                                             "{:.1f}_{:.1f}_{:.1f}_{:.0f}_{:.0f}.jpg".format(label[0], label[1],
+                                                                                             label[2], label[3],
+                                                                                             label[4]))
+                    save_image(recon.to('cpu'), image_dir)
 
     avg_loss = test_loss / len(loader.dataset)
     if not is_save:
@@ -129,10 +134,16 @@ def test(model, loader, epoch, is_save=False):
     return avg_loss
 
 
-data_transforms = transforms.Compose([transforms.RandomResizedCrop(64),
-                                      transforms.RandomHorizontalFlip(),
-                                      transforms.ToTensor(),
-                                      transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
+# data_transforms = transforms.Compose([transforms.RandomResizedCrop(64),
+#                                       transforms.RandomHorizontalFlip(),
+#                                       transforms.ToTensor(),
+#                                       transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
+
+data_transforms = transforms.Compose([
+    transforms.Resize((64, 64)),
+    transforms.RandomHorizontalFlip(),
+    transforms.ToTensor(),
+])
 
 train_dataset = GarmentDataset(args.rgb_dir, args.rgb_dir, args.data_type, args.train_label_dir, data_transforms)
 test_dataset = GarmentDataset(args.rgb_dir, args.rgb_dir, args.data_type, args.test_label_dir, data_transforms)
@@ -141,7 +152,7 @@ train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=Tru
 test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True, num_workers=16)
 validate_loader = DataLoader(validate_dataset, batch_size=args.batch_size, shuffle=True, num_workers=16)
 
-vae = ConvVAE(img_channels=utils.IMAGE_SIZE, latent_size=utils.LATENT_SIZE).to(device)
+vae = ConvVAE(img_channels=utils.IMAGE_SIZE, latent_size=32).to(device)
 optimizer = optim.Adam(vae.parameters(), lr=1e-4, weight_decay=1e-4)
 scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=5)
 earlystopping = EarlyStopping('min', patience=30)
@@ -167,8 +178,8 @@ if args.generate_sample == 1:
     vae.load_state_dict(best_state['state_dict'])
     # delete useless parameter to get more gpu memory
     del best_state
-    all_dataset = GarmentDataset(args.rgb_dir, args.data_dir, args.data_type, ALL_DIR)
-    all_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=16)
+    all_dataset = GarmentDataset(args.rgb_dir, args.rgb_dir, args.data_type, ALL_DIR, data_transforms)
+    all_loader = DataLoader(all_dataset, batch_size=args.batch_size, shuffle=True, num_workers=16)
     test(vae, all_loader, 0, is_save=True)
     os._exit(0)
 

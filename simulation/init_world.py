@@ -60,7 +60,7 @@ for parameter_count in range(0, 1000, 1):
         for t in tr:
             line = ''
             for i in range(t, t+3):
-                line += '{:.1f}_{:.1f}_{:.1f}_{:.0f}_{:.0f}.npz'.format(es, ds, bs, i, c)
+                line += '{:.1f}_{:.1f}_{:.1f}_{:.0f}_{:.0f}.jpg'.format(es, ds, bs, i, c)
                 if i != t+2:
                     line += ','
                 else:

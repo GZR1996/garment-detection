@@ -2,7 +2,9 @@ import os
 
 import torch
 import numpy as np
+import torchvision.transforms.functional as F
 
+from PIL import Image
 from functools import partial
 
 IMAGE_SIZE = 3
@@ -26,6 +28,19 @@ def save_checkpoint(loss_state, best_state, is_best, filename, best_filename):
         torch.save(best_state, best_filename)
 
 
+def save_depth(sample_dir, data, labels):
+    """
+    :param sample_dir:
+    :param data:
+    :param label:
+    :return:
+    """
+    for image, label in zip(data, labels):
+        image_dir = os.path.join(sample_dir, "{:.1f}_{:.1f}_{:.1f}_{:.0f}_{:.0f}.jpg".format(label[0], label[1],
+                                                                                             label[2], label[3],
+                                                                                             label[4]))
+        np.savez_compressed(image_dir, image=image, label=label)
+
 def save_image(sample_dir, data, labels):
     """
     :param sample_dir:
@@ -36,7 +51,12 @@ def save_image(sample_dir, data, labels):
     for image, label in zip(data, labels):
         image_dir = os.path.join(sample_dir, "{:.1f}_{:.1f}_{:.1f}_{:.0f}_{:.0f}".format(label[0], label[1],
                                                                                          label[2], label[3], label[4]))
-        np.savez_compressed(image_dir, image=image, label=label)
+        for image in data:
+            # data = F.to_pil_image(image)
+            print(image.shape)
+            image = F.to_pil_image(image)
+            image.save(image_dir)
+        # np.savez_compressed(image_dir, image=image, label=label)
 
 
 class EarlyStopping(object):

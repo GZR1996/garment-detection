@@ -116,7 +116,7 @@ def test(model, loader, epoch, is_save=False):
                 if batch % 20 == 0:
                     print('Saving {} batch images in {} seconds'.format(batch, time.time() - epoch_start))
                 images = recon_batch.view([-1, 256, 256])
-                utils.save_image(args.sample_dir, np.asarray(images.to('cpu')), np.asarray(data['label']))
+                utils.save_depth(args.sample_dir, np.asarray(images.to('cpu')), np.asarray(data['label']))
 
     avg_loss = test_loss / len(loader.dataset)
     if not is_save:
