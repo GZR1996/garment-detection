@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import torch
 from torch.utils.data import Dataset
+from PIL import Image
 
 
 class GarmentDataset(Dataset):
@@ -30,8 +31,8 @@ class GarmentDataset(Dataset):
         if self.data_type == 'rgb':
             img_name = "{}_{}_{}_{:.0f}_{:.0f}.jpg".format(label[0], label[1], label[2], label[3], label[4])
             img_name = os.path.join(self.rgb_dir, img_name)
-            img = imageio.imread(img_name)
-            sample = torch.from_numpy(np.asarray(img)).float().permute(2, 0, 1)
+            img = Image.open(img_name)
+            sample = img
         elif self.data_type in ['raw_depth', 'depth', 'segmentation']:
             data_name = "{}_{}_{}_{:.0f}_{:.0f}.npz".format(label[0], label[1], label[2], label[3], label[4])
             data_name = os.path.join(self.data_dir, data_name)

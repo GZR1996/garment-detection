@@ -91,9 +91,9 @@ class Environment:
         """
         for parameter_count in range(1000):
             indexes = cal_parameter_group(parameter_count)
-            spring_elastic_stiffness = self.elastic_stiffness_range[indexes[0]]
-            spring_damping_stiffness = self.damping_stiffness_range[indexes[1]]
-            spring_bending_stiffness = self.bending_stiffness_range[indexes[2]]
+            spring_elastic_stiffness = 40.0
+            spring_damping_stiffness = 0.1
+            spring_bending_stiffness = 2.0
             table_id, cloth_id, anchor_ids = self.load_world(spring_elastic_stiffness,
                                                              spring_damping_stiffness,
                                                              spring_bending_stiffness)
@@ -135,6 +135,7 @@ class Environment:
                     print("finish saving in ", time.time() - start)
 
                 p.stepSimulation()
+            break
 
     def load_world(self, spring_elastic_stiffness, spring_damping_stiffness, spring_bending_stiffness):
         """

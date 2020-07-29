@@ -17,7 +17,7 @@ cloth_orientation = np.array([0.0, 0.0, np.pi])
 
 # simulation
 environment = Environment(table_position, cloth_position)
-environment.simulate()
+# environment.simulate()
 
 # generate labels
 # for vae
@@ -45,7 +45,7 @@ with open('./data/vae/test_label.csv', 'w') as fin:
 esr = environment.elastic_stiffness_range
 dsr = environment.damping_stiffness_range
 bsr = environment.bending_stiffness_range
-tr = range(0, 27, 3)
+tr = range(0, 19, 3)
 cr = range(5)
 
 random.seed(123)
@@ -65,10 +65,10 @@ for parameter_count in range(0, 1000, 1):
                     line += ','
                 else:
                     line += '\n'
-            rand = random.randint(1, 10)
-            if rand <= 8:
+            rand = random.randint(1, 100)
+            if rand <= 75:
                 label_dict['train'].append(line)
-            elif rand <= 9:
+            elif rand <= 90:
                 label_dict['test'].append(line)
             else:
                 label_dict['validate'].append(line)

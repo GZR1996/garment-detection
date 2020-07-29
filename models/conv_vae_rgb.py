@@ -35,17 +35,18 @@ class Encoder(nn.Module):
         self.conv4 = nn.Conv2d(128, 256, 4, stride=2)
 
         self.fc_mu = nn.Linear(2*2*256, latent_size)
-        self.fc_logsigma = nn.Linear(2*2*256, latent_size)
+        self.fc_log_sigma = nn.Linear(2*2*256, latent_size)
 
     def forward(self, x):
         x = F.relu(self.conv1(x))
         x = F.relu(self.conv2(x))
         x = F.relu(self.conv3(x))
         x = F.relu(self.conv4(x))
+
         x = x.view(x.size(0), -1)
 
         mu = self.fc_mu(x)
-        log_sigma = self.fc_logsigma(x)
+        log_sigma = self.fc_log_sigma(x)
 
         return mu, log_sigma
 
@@ -71,4 +72,5 @@ class Decoder(nn.Module):
         x = F.relu(self.deconv2(x))
         x = F.relu(self.deconv3(x))
         reconstruction = F.sigmoid(self.deconv4(x))
+        # print(reconstruction)
         return reconstruction

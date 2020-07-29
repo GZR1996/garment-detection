@@ -129,14 +129,14 @@ def test(model, loader, epoch, is_save=False):
     return avg_loss
 
 
-data_transforms = transforms.Compose([transforms.RandomResizedCrop(256),
+data_transforms = transforms.Compose([transforms.RandomResizedCrop(64),
                                       transforms.RandomHorizontalFlip(),
                                       transforms.ToTensor(),
                                       transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
 
-train_dataset = GarmentDataset(args.rgb_dir, args.rgb_dir, args.data_type, args.train_label_dir)
-test_dataset = GarmentDataset(args.rgb_dir, args.rgb_dir, args.data_type, args.test_label_dir)
-validate_dataset = GarmentDataset(args.rgb_dir, args.rgb_dir, args.data_type, args.validate_label_dir)
+train_dataset = GarmentDataset(args.rgb_dir, args.rgb_dir, args.data_type, args.train_label_dir, data_transforms)
+test_dataset = GarmentDataset(args.rgb_dir, args.rgb_dir, args.data_type, args.test_label_dir, data_transforms)
+validate_dataset = GarmentDataset(args.rgb_dir, args.rgb_dir, args.data_type, args.validate_label_dir, data_transforms)
 train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=16)
 test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True, num_workers=16)
 validate_loader = DataLoader(validate_dataset, batch_size=args.batch_size, shuffle=True, num_workers=16)
