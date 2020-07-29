@@ -38,7 +38,6 @@ class Encoder(nn.Module):
         self.fc_logsigma = nn.Linear(2*2*256, latent_size)
 
     def forward(self, x):
-        print(x.shape)
         x = F.relu(self.conv1(x))
         x = F.relu(self.conv2(x))
         x = F.relu(self.conv3(x))
