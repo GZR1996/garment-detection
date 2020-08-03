@@ -7,9 +7,9 @@ class Regression(nn.Module):
     """ Regression Network"""
     def __init__(self):
         super(Regression, self).__init__()
-        self.unit1 = Unit()
-        self.unit2 = Unit()
-        self.unit3 = Unit()
+        self.unit1 = Net()
+        self.unit2 = Net()
+        self.unit3 = Net()
         self.fc1 = nn.Linear(3*32, 64)
         self.fc2 = nn.Linear(64, 32)
         self.fc3 = nn.Linear(32, 10)
@@ -26,14 +26,14 @@ class Regression(nn.Module):
         return y
 
 
-class Unit(nn.Module):
+class Net(nn.Module):
     def __init__(self):
-        super(Unit, self).__init__()
+        super(Net, self).__init__()
         self.conv1 = nn.Conv2d(1, 4, 3, padding=1, stride=2)
         self.conv2 = nn.Conv2d(4, 8, 3, padding=1, stride=2)
-        self.fc1 = nn.Linear(8*16*16, 120)
-        self.fc2 = nn.Linear(120, 84)
-        self.fc3 = nn.Linear(84, 32)
+        self.fc1 = nn.Linear(8*16*16, 128)
+        self.fc2 = nn.Linear(128, 64)
+        self.fc3 = nn.Linear(64, 10)
 
     def forward(self, x):
         x = F.relu(self.conv1(x))

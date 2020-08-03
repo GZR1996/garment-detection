@@ -24,19 +24,19 @@ class SampleDataset(Dataset):
         sample_names = self.sample_names.iloc[idx]
         sample_name = os.path.join(self.sample_dir, sample_names[0])
         data = np.load(sample_name)
-        sample1 = np.expand_dims(data['image'], axis=0)
+        sample1 = np.expand_dims(data['depth'], axis=0)
         if self.transform:
             sample1 = self.transform(sample1)
 
         sample_name = os.path.join(self.sample_dir, sample_names[1])
         data = np.load(sample_name)
-        sample2 = np.expand_dims(data['image'], axis=0)
+        sample2 = np.expand_dims(data['depth'], axis=0)
         if self.transform:
             sample2 = self.transform(sample2)
 
         sample_name = os.path.join(self.sample_dir, sample_names[2])
         data = np.load(sample_name)
-        sample3 = np.expand_dims(data['image'], axis=0)
+        sample3 = np.expand_dims(data['depth'], axis=0)
         if self.transform:
             sample3 = self.transform(sample3)
 

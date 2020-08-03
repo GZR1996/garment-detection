@@ -13,14 +13,14 @@ from sklearn.metrics import classification_report
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
-from models.conv_regression import ConvRegression, TriEncoder
-from models.regression import Regression
+from models.conv_regression import ConvRegression, TriEncoder, SimpleRegression
+from models.regression import Regression, Net
 from utils import utils
-from utils.sample_dataset_rgb import SampleDataset
+from utils.sample_dataset import SampleDataset
 from utils.utils import EarlyStopping
 
 DIRECTORY = os.path.abspath(os.path.dirname(__file__))
-SAMPLE_DIR = os.path.join(DIRECTORY, 'simulation', 'data', 'sample')
+SAMPLE_DIR = os.path.join(DIRECTORY, 'simulation', 'data', 'bin')
 TRAIN_LABEL_DIR = os.path.join(DIRECTORY, 'simulation', 'data', 'regression', 'train_label.csv')
 TEST_LABEL_DIR = os.path.join(DIRECTORY, 'simulation', 'data', 'regression', 'test_label.csv')
 VALIDATE_LABEL_DIR = os.path.join(DIRECTORY, 'simulation', 'data', 'regression', 'validate_label.csv')
@@ -100,19 +100,19 @@ def train(encoder, model, loader, criterion, stiffness, epoch):
 
     for batch, data in enumerate(loader):
         optimizer.zero_grad()
-        with torch.no_grad():
-            x1 = data['x1'].to(device)
-            x2 = data['x2'].to(device)
-            x3 = data['x3'].to(device)
-            z = encoder(x1, x2, x3).view(-1, 1, 32, 96)
+        x1 = data['x1'].to(device)
+        x2 = data['x2'].to(device)
+        x3 = data['x3'].to(device)
+        z = encoder(x1, x2, x3)
         outputs = model(z)
-        outputs = torch.tensor([torch.argmax(o) for o in outputs], dtype=torch.float, requires_grad=True).to(device)
+        # outputs = torch.max(outputs, 1)# torch.tensor([torch.argmax(o) for o in outputs], dtype=torch.float, requires_grad=True).to(device)
         # print(batch, [np.argmax(o) for o in outputs.detach().cpu().numpy()])
         # print(batch, outputs.detach().cpu().numpy())
+        # print(outputs)
         targets = label_encoer.transform([t for t in data['label'][:, stiffness]])
-        targets = torch.tensor(targets, dtype=torch.float).to(device)
-        # print(outputs, targets)
+        targets = torch.tensor(targets, dtype=torch.long).to(device)
         loss = criterion(outputs, targets)
+        # loss = torch.sqrt(loss)
         loss.backward()
         train_loss += loss.item()
         optimizer.step()
@@ -133,6 +133,7 @@ def test(encoder, model, loader, criterion, stiffness, epoch, is_save=False):
     test_loss = 0.0
     epoch_start = time.time()
     label_encoder = label_encoders[stiffness]
+    accuracy = 0
     if is_save:
         results = []
         true_labels = []
@@ -143,55 +144,62 @@ def test(encoder, model, loader, criterion, stiffness, epoch, is_save=False):
             x2 = data['x2'].to(device)
             x3 = data['x3'].to(device)
             z = encoder(x1, x2, x3)
-            z = z.view(-1, 1, 32, 96)
             outputs = model(z)
-            outputs = torch.tensor([torch.argmax(o) for o in outputs], dtype=torch.float, requires_grad=True).to(device)
+            # outputs = torch.max(outputs, 1) # outputs = torch.tensor([torch.argmax(o) for o in outputs], dtype=torch.float, requires_grad=True).to(device)
             targets = label_encoder.transform([t for t in data['label'][:, stiffness]])
-            targets_ = torch.tensor(targets, dtype=torch.float).to(device)
+            targets_ = torch.tensor(targets, dtype=torch.long).to(device)
             loss = criterion(outputs, targets_)
+            # loss = torch.sqrt(loss)
             test_loss += loss.item()
 
+            _, preds = torch.max(outputs, 1)
+            accuracy += torch.sum(preds == targets_)
             if is_save:
-                true_labels.extend(targets)
-                results.extend(outputs.cpu().numpy())
+                true_labels.extend([t for t in targets])
+                results.extend(preds.cpu().numpy())
             if batch % 20 == 0:
                 print('Test epoch: {}, batch: {}, loss: {}, time: {}'.format(epoch, batch, loss,
                                                                              time.time() - epoch_start))
-                print('Example outputs: ', outputs)
+                # print('Example outputs: ', preds, 'True label: ', targets)
 
     avg_loss = test_loss / len(loader.dataset)
     if is_save:
         print(classification_report(true_labels, results))
+        print(results)
         results = label_encoder.inverse_transform(results)
+
         np.savetxt(os.path.join(args.result_dir, 'result.csv'), results, delimiter=',')
     else:
-        print('Finish testing epoch {}, average loss: {}, in {} seconds'.format(epoch,
-                                                                                avg_loss,
-                                                                                time.time() - epoch_start))
+        print('Finish testing epoch {}, average loss: {}, accuracy: {}, in {} seconds'.format(epoch,
+                                                                                              avg_loss,
+                                                                                              accuracy / len(
+                                                                                                  loader.dataset),
+                                                                                              time.time() - epoch_start))
 
     return avg_loss
 
 
-elastic_stiffness_range = np.arange(40.0, 140.0, 10.0)
+elastic_stiffness_range = np.arange(100.0, 1500.0, 300.0)
 damping_stiffness_range = np.arange(0.1, 1.1, 0.1)
 bending_stiffness_range = np.arange(2.0, 22.0, 2.0)
 
 elastic_le = preprocessing.LabelEncoder()
 elastic_le.fit(elastic_stiffness_range)
+print(elastic_le.classes_)
 damping_le = preprocessing.LabelEncoder()
 damping_le.fit(damping_stiffness_range)
 bending_le = preprocessing.LabelEncoder()
 bending_le.fit(bending_stiffness_range)
 label_encoders = [elastic_le, damping_le, bending_le]
 
-model, input_size = load_model('vgg', 10, True, use_pretrained=True)
+model = SimpleRegression(3 * 32)
 # model = ConvRegression(utils.DATA_SIZE, utils.LATENT_SIZE)
-encoder = TriEncoder(3, 32).to(device)
+encoder = TriEncoder(1, 32).to(device)
 model = model.to(device)
 optimizer = optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-4)
 scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=5)
 earlystopping = EarlyStopping('min', patience=30)
-loss_function = nn.MSELoss()
+loss_function = nn.CrossEntropyLoss()
 
 data_transforms = transforms.Compose([
     transforms.Resize((64, 64)),
@@ -199,8 +207,8 @@ data_transforms = transforms.Compose([
     transforms.ToTensor(),
 ])
 
-train_dataset = SampleDataset(args.sample_dir, args.train_label_dir, data_transforms)
-test_dataset = SampleDataset(args.sample_dir, args.test_label_dir, data_transforms)
+train_dataset = SampleDataset(args.sample_dir, args.train_label_dir)
+test_dataset = SampleDataset(args.sample_dir, args.test_label_dir)
 train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=16)
 test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True, num_workers=16)
 
@@ -220,9 +228,9 @@ reload_dir = os.path.join(args.checkpoint_dir, utils.BEST_FILENAME)
 #     del best_state
 #     os._exit(0)
 # else:
-encoder_state = torch.load('./checkpoint/vae/best.pth', map_location='cpu')
-encoder.encoder.load_state_dict(encoder_state['encoder_dict'])
-del encoder_state
+# encoder_state = torch.load('./checkpoint/vae/best.pth', map_location='cpu')
+# encoder.encoder.load_state_dict(encoder_state['encoder_dict'])
+# del encoder_state
 if args.generate_result == 0 and args.reload == 1 and os.path.exists(reload_dir):
     best_state = torch.load(reload_dir)
     print('Reloading vae1......, file: ', reload_dir)
