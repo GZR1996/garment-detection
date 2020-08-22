@@ -185,7 +185,7 @@ bending_stiffness_range = np.arange(2.0, 22.0, 2.0)
 
 elastic_le = preprocessing.LabelEncoder()
 elastic_le.fit(elastic_stiffness_range)
-print(elastic_le.classes_)
+
 damping_le = preprocessing.LabelEncoder()
 damping_le.fit(damping_stiffness_range)
 bending_le = preprocessing.LabelEncoder()

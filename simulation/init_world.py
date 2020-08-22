@@ -44,7 +44,9 @@ with open('./data/vae/test_label.csv', 'w') as fin:
 file_list.insert(0, file_list[0])
 file_dict = {}
 for file in file_list:
-    s = file.replace('npz', '').split('_')
+    s = file.replace('.npz', '').split('_')
+    if int(s[-3]) > 2:
+        continue
     key = (s[0], s[1], s[2], s[4], s[5], s[6])
     if key not in file_dict:
         file_dict[key] = []
